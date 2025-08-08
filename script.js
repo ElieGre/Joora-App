@@ -7,6 +7,11 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap contributors',
 }).addTo(map);
 
+// ---------- Lebanon bounds ----------
+const LEB_BOUNDS = L.latLngBounds([33.05, 35.10], [34.70, 36.65]);
+// Keep panning roughly inside Lebanon
+map.setMaxBounds(LEB_BOUNDS.pad(0.05));
+
 // --- State ---
 let addingPoint = false;
 let draftMarker = null;
@@ -46,8 +51,14 @@ const searchResults = document.getElementById('searchResults');
   data.forEach(row => addPinToMapFromDB(row));
 })();
 
+
+
 function addPinToMapFromDB(row) {
-  const m = L.marker([row.lat, row.lng]).addTo(map);
+  const latlng = L.latLng(row.lat, row.lng);
+  // Skip any bad/out-of-bounds data
+  if (!LEB_BOUNDS.contains(latlng)) return;
+
+  const m = L.marker(latlng).addTo(map);
   m.metadata = {
     coords: { lat: row.lat, lng: row.lng },
     roadSide: row.roadside || 'Middle',
@@ -60,6 +71,10 @@ function addPinToMapFromDB(row) {
 
 // --- Add mode ---
 addPointBtn.addEventListener('click', () => {
+  // Friendly nudge before entering add mode
+  const ok = confirm("Safety first: don't place pins while driving.\n\nContinue?");
+  if (!ok) return;
+
   addingPoint = true;
   addPointBtn.disabled = true;
   addPointBtn.textContent = "Click Map";
@@ -69,6 +84,13 @@ addPointBtn.addEventListener('click', () => {
 // Click map -> place draft + open panel
 map.on('click', (e) => {
   if (!addingPoint) return;
+
+  // block clicks outside Lebanon
+  if (!LEB_BOUNDS.contains(e.latlng)) {
+    alert('Please place pins inside Lebanon 🇱🇧');
+    return;
+  }
+
   if (draftMarker) map.removeLayer(draftMarker);
 
   draftMarker = L.marker(e.latlng).addTo(map);
@@ -92,11 +114,17 @@ intensity.addEventListener('input', () => {
 savePinBtn.addEventListener('click', async () => {
   if (!draftMarker || isSaving) return;
 
+  // Double-check bounds on save
+  const latlng = draftMarker.getLatLng();
+  if (!LEB_BOUNDS.contains(latlng)) {
+    alert('This pin is outside Lebanon and cannot be saved.');
+    return;
+  }
+
   isSaving = true;
   savePinBtn.disabled = true;
   savePinBtn.textContent = 'Saving…';
 
-  const latlng = draftMarker.getLatLng();
   const pin = {
     lat: latlng.lat,
     lng: latlng.lng,
@@ -104,6 +132,19 @@ savePinBtn.addEventListener('click', async () => {
     details: details.value.trim(),
     intensity: Number(intensity.value)
   };
+
+  // Notice bar show/hide (remember dismissal)
+const notice = document.getElementById('notice');
+const noticeClose = document.getElementById('noticeClose');
+
+if (!localStorage.getItem('joora_notice_dismissed')) {
+  notice?.classList.remove('hidden');
+}
+noticeClose?.addEventListener('click', () => {
+  notice.classList.add('hidden');
+  localStorage.setItem('joora_notice_dismissed', '1');
+});
+
 
   const { data: inserted, error } = await supabase
     .from('pins')

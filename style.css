@@ -67,3 +67,97 @@ textarea { resize: vertical; }
   padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #eee;
 }
 #searchResults li:last-child { border-bottom: 0; }
+
+
+/* Base spacing vars */
+:root {
+  --header-h: 60px;
+  --pad: 16px;
+}
+
+/* Map fills the screen under header */
+#map {
+  height: calc(100dvh - var(--header-h));
+  width: 100%;
+}
+
+/* Search sits under header, left side */
+#searchBar {
+  position: fixed;
+  top: calc(var(--header-h) + var(--pad));
+  left: var(--pad);
+  right: auto;
+  max-width: 520px;
+  z-index: 1200;
+}
+
+/* Floating + button (desktop) */
+#addPointBtn {
+  position: fixed;
+  right: var(--pad);
+  top: calc(var(--header-h) + var(--pad));
+  z-index: 1100;
+  width: 56px; height: 56px; font-size: 28px;
+}
+
+/* Panel sits above everything */
+#formPanel { z-index: 1300; }
+
+/* Keep Leaflet controls below panel but above map */
+.leaflet-top, .leaflet-bottom { z-index: 1001; }
+
+/* ---------- Mobile tweaks ---------- */
+@media (max-width: 640px) {
+  /* Search goes full-width at top */
+  #searchBar {
+    top: calc(var(--header-h) + 8px + env(safe-area-inset-top));
+    left: calc(8px + env(safe-area-inset-left));
+    right: calc(8px + env(safe-area-inset-right));
+    max-width: none;
+  }
+
+  /* Move + button to bottom-right so it never hides the search */
+  #addPointBtn {
+    top: auto;
+    right: calc(12px + env(safe-area-inset-right));
+    bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+
+  /* Turn the form into a bottom sheet */
+  #formPanel {
+    top: auto; right: 0; left: 0; bottom: 0;
+    width: 100%;
+    max-height: 65dvh;
+    border-radius: 16px 16px 0 0;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    overflow: auto;
+  }
+}
+
+/* Optional: shrink search input on very narrow phones */
+@media (max-width: 360px) {
+  #searchInput { font-size: 15px; padding: 8px 10px; }
+}
+
+/* Safety notice */
+#notice {
+  position: fixed;
+  top: 60px; /* equals your header height */
+  left: 0; right: 0;
+  background: #fff3cd;
+  color: #664d03;
+  border: 1px solid #ffec99;
+  padding: 10px 40px 10px 12px;
+  font-size: 14px;
+  z-index: 1300;
+}
+#notice.hidden { display: none; }
+#notice button#noticeClose {
+  position: absolute; right: 8px; top: 6px;
+  border: 0; background: transparent; font-size: 20px; line-height: 1;
+  color: #664d03; cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  #notice { top: calc(60px + env(safe-area-inset-top)); font-size: 13px; }
+}
