@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>JOORA</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <div id="header"><h1>JOORA</h1></div>
+
+  <div id="map"></div>
+  <button id="addPointBtn">+</button>
+
+  <!-- ✅ FULL PANEL CONTENT -->
+  <div id="formPanel" class="hidden">
+    <h3>Add pothole details</h3>
+
+    <div class="row">
+      <label>Coordinates</label>
+      <input id="coord" type="text" disabled />
+    </div>
+
+    <div class="row">
+      <label for="roadSide">Where on the road?</label>
+      <select id="roadSide">
+        <option value="Left">Left</option>
+        <option value="Middle" selected>Middle</option>
+        <option value="Right">Right</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <label for="details">More info</label>
+      <textarea id="details" rows="3" placeholder="Near curb, in front of shop, next to manhole..."></textarea>
+    </div>
+
+    <div class="row">
+      <label for="intensity">Intensity</label>
+      <input id="intensity" type="range" min="1" max="5" step="1" value="3"/>
+      <output id="intensityOut">3</output>
+      <small>1 = bad, 5 = extreme</small>
+    </div>
+
+    <div class="actions">
+      <button id="savePin" class="primary">Save</button>
+      <button id="cancelPin" class="ghost">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Leaflet -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+
+  <!-- Supabase SDK -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <!-- Supabase keys -->
+  <script>
+    window.SUPABASE_URL = "https://dwsfbdxkfxmbuguxxavt.supabase.co";
+    window.SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3c2ZiZHhrZnhtYnVndXh4YXZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ2NTgzMTUsImV4cCI6MjA3MDIzNDMxNX0.OG9v09eBKcx65qT1ZptqggfQCE6j3Vdaeamkdw8W3Yk";
+  </script>
+
+  <!-- App JS -->
+  <script src="script.js"></script>
+</body>
+</html>
