@@ -160,3 +160,101 @@ function escapeHtml(str) {
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
 }
+
+// ---- Area search (general, not precise) using Nominatim ----
+const searchInput   = document.getElementById('searchInput');
+const searchResults = document.getElementById('searchResults');
+
+const ALLOWED_TYPES = new Set([
+  'country','state','region','province','county','district',
+  'city','town','municipality','suburb','quarter','neighbourhood','neighborhood','village'
+]);
+
+// Simple debounce to avoid spamming the API
+function debounce(fn, ms = 350) {
+  let t; 
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+async function geocode(query) {
+  if (!query || query.trim().length < 2) return [];
+  const url = new URL('https://nominatim.openstreetmap.org/search');
+  url.searchParams.set('format', 'jsonv2');
+  url.searchParams.set('q', query);
+  url.searchParams.set('addressdetails', '1');
+  url.searchParams.set('limit', '8');
+  // OPTIONAL: bias to Lebanon if you want
+  // url.searchParams.set('countrycodes', 'lb');
+
+  const resp = await fetch(url.toString(), {
+    headers: { 'Accept': 'application/json' }
+    // Browser will send Referer automatically; be gentle with usage.
+  });
+  if (!resp.ok) return [];
+  let items = await resp.json();
+
+  // Keep only general areas
+  items = items.filter(it => {
+    const type = (it.type || it.category || '').toLowerCase();
+    return ALLOWED_TYPES.has(type);
+  });
+
+  return items;
+}
+
+function showResults(items) {
+  if (!items.length) {
+    searchResults.classList.add('hidden');
+    searchResults.innerHTML = '';
+    return;
+  }
+  searchResults.innerHTML = items.map((it, idx) => `
+    <li data-idx="${idx}">
+      ${escapeHtml(it.display_name)}
+    </li>
+  `).join('');
+  searchResults.classList.remove('hidden');
+
+  // Click -> fit map to bounding box (general area)
+  Array.from(searchResults.querySelectorAll('li')).forEach(li => {
+    li.addEventListener('click', () => {
+      const i = Number(li.getAttribute('data-idx'));
+      const sel = items[i];
+      // Prefer bounding box for "general area" fit
+      if (sel && sel.boundingbox) {
+        const [south, north, west, east] = sel.boundingbox.map(Number);
+        const bounds = L.latLngBounds([south, west], [north, east]);
+        map.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 }); // cap zoom so it’s not too precise
+      } else if (sel && sel.lat && sel.lon) {
+        map.setView([Number(sel.lat), Number(sel.lon)], 13);
+      }
+      searchResults.classList.add('hidden');
+      searchInput.blur();
+    });
+  });
+}
+
+// Wire input with debounce
+const handleSearch = debounce(async () => {
+  const q = searchInput.value.trim();
+  if (!q) { searchResults.classList.add('hidden'); searchResults.innerHTML=''; return; }
+  try {
+    const res = await geocode(q);
+    showResults(res);
+  } catch (err) {
+    console.error('Search error:', err);
+    searchResults.classList.add('hidden');
+  }
+}, 400);
+
+searchInput.addEventListener('input', handleSearch);
+
+// Hide results when clicking outside
+document.addEventListener('click', (e) => {
+  if (!searchBarContains(e.target)) {
+    searchResults.classList.add('hidden');
+  }
+});
+function searchBarContains(node) {
+  return node === searchInput || node === searchResults || searchResults.contains(node) || searchInput.contains?.(node);
+}
