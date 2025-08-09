@@ -1,37 +1,106 @@
+/* ---------- Base layout ---------- */
 html, body { height: 100%; margin: 0; }
-body { display: flex; flex-direction: column; font-family: Arial, sans-serif; }
-
-/* Header */
-#header {
-  flex: 0 0 60px; background: #333; color: #fff;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 24px; position: relative; z-index: 1000;
+body {
+  display: flex;
+  flex-direction: column;
+  font-family: Arial, sans-serif;
 }
 
-/* Map fills remaining height */
+/* Map fills everything below the sticky header */
 #map { flex: 1 1 auto; min-height: 0; width: 100%; }
 
-/* Floating + button */
-#addPointBtn {
-  position: fixed; top: 80px; right: 20px; z-index: 1100;
-  background-color: #007bff; color: #fff; border: none; border-radius: 50%;
-  width: 50px; height: 50px; font-size: 24px; cursor: pointer;
-  box-shadow: 0 4px 6px rgba(0,0,0,.3);
+/* ---------- Header ---------- */
+#header {
+  position: sticky;           /* stays at top on scroll */
+  top: 0;
+  z-index: 1000;
+  background: rgba(255,255,255,0.85);   /* semi-transparent */
+  backdrop-filter: blur(6px);           /* optional glass effect */
+  border-bottom: 1px solid rgba(0,0,0,0.06);
 }
-#addPointBtn:hover { background-color: #0056b3; }
 
-/* Panel */
+#header .header-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 10px 16px 12px;
+  display: grid;
+  gap: 10px;
+}
+
+/* Top row: title left, + button right */
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#header h1 {
+  margin: 0;
+  line-height: 1;
+  color: #000;               /* JOORA black */
+  font-size: 34px;
+  letter-spacing: 1px;
+}
+
+/* Square + button */
+#addPointBtn {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 0;          /* square */
+  background: #1a73e8;
+  color: #fff;
+  font-size: 28px;
+  line-height: 44px;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.18);
+}
+#addPointBtn:disabled { opacity: .7; cursor: default; }
+#addPointBtn:hover { filter: brightness(0.95); }
+
+/* Search bar (inside header, full width) */
+#searchBar { width: 100%; }
+#searchBar input {
+  width: 100%;
+  height: 40px;
+  border: 1px solid #cfcfcf;
+  background: #fff;
+  color: #111;
+  padding: 0 12px;
+  font-size: 15px;
+  border-radius: 0;          /* sharp rectangle */
+  outline: none;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+}
+#searchBar input:focus {
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 3px rgba(26,115,232,0.15);
+}
+
+/* Google Places dropdown above the map */
+.pac-container {
+  z-index: 2000 !important;
+  border-radius: 0 !important;  /* sharp corners */
+}
+
+/* ---------- Pin form panel ---------- */
 #formPanel.hidden { display: none; }
+
 #formPanel {
-  position: fixed; top: 100px; right: 20px; z-index: 1200;
+  position: fixed;
+  right: 20px; top: 110px;            /* sits below header */
+  z-index: 1300;
   width: 320px; max-width: calc(100% - 40px);
   background: #fff; border-radius: 12px; padding: 16px;
-  box-shadow: 0 8px 20px rgba(0,0,0,.2);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
 }
 #formPanel h3 { margin: 0 0 12px; }
 .row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
 label { font-weight: 600; }
-input[type="text"], select, textarea { border: 1px solid #ccc; border-radius: 8px; padding: 8px; font-size: 14px; }
+input[type="text"], select, textarea {
+  border: 1px solid #ccc; border-radius: 8px; padding: 8px; font-size: 14px;
+}
 textarea { resize: vertical; }
 #intensity { width: 100%; }
 #intensityOut { margin-left: 8px; font-weight: 700; }
@@ -39,117 +108,16 @@ textarea { resize: vertical; }
 .actions .primary { background: #28a745; color: #fff; border: none; border-radius: 8px; padding: 8px 12px; cursor: pointer; }
 .actions .ghost { background: #eee; color: #333; border: none; border-radius: 8px; padding: 8px 12px; cursor: pointer; }
 
-/* Keep Leaflet controls below panel */
-.leaflet-top, .leaflet-bottom { z-index: 1001; }
-
-
-.hidden { display: none; }
-
-#searchBar {
-  position: fixed;
-  top: 72px; left: 20px; right: 20px;
-  max-width: 520px;
-  z-index: 1200;
-}
-#searchInput {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #ccc; border-radius: 10px; font-size: 16px;
-  background: #fff; box-shadow: 0 6px 16px rgba(0,0,0,.12);
-}
-#searchResults {
-  margin: 6px 0 0; padding: 0; list-style: none;
-  background: #fff; border: 1px solid #ddd; border-radius: 10px;
-  box-shadow: 0 8px 20px rgba(0,0,0,.15);
-  max-height: 260px; overflow: auto;
-}
-#searchResults li {
-  padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #eee;
-}
-#searchResults li:last-child { border-bottom: 0; }
-
-
-/* Base spacing vars */
-:root {
-  --header-h: 60px;
-  --pad: 16px;
-}
-
-/* Map fills the screen under header */
-#map {
-  height: calc(100dvh - var(--header-h));
-  width: 100%;
-}
-
-/* Search sits under header, left side */
-#searchBar {
-  position: fixed;
-  top: calc(var(--header-h) + var(--pad));
-  left: var(--pad);
-  right: auto;
-  max-width: 520px;
-  z-index: 1200;
-}
-
-/* Floating + button (desktop) */
-#addPointBtn {
-  position: fixed;
-  right: var(--pad);
-  top: calc(var(--header-h) + var(--pad));
-  z-index: 1100;
-  width: 56px; height: 56px; font-size: 28px;
-}
-
-/* Panel sits above everything */
-#formPanel { z-index: 1300; }
-
-/* Keep Leaflet controls below panel but above map */
-.leaflet-top, .leaflet-bottom { z-index: 1001; }
-
-/* ---------- Mobile tweaks ---------- */
-@media (max-width: 640px) {
-  /* Search goes full-width at top */
-  #searchBar {
-    top: calc(var(--header-h) + 8px + env(safe-area-inset-top));
-    left: calc(8px + env(safe-area-inset-left));
-    right: calc(8px + env(safe-area-inset-right));
-    max-width: none;
-  }
-
-  /* Move + button to bottom-right so it never hides the search */
-  #addPointBtn {
-    top: auto;
-    right: calc(12px + env(safe-area-inset-right));
-    bottom: calc(12px + env(safe-area-inset-bottom));
-  }
-
-  /* Turn the form into a bottom sheet */
-  #formPanel {
-    top: auto; right: 0; left: 0; bottom: 0;
-    width: 100%;
-    max-height: 65dvh;
-    border-radius: 16px 16px 0 0;
-    padding-bottom: calc(16px + env(safe-area-inset-bottom));
-    overflow: auto;
-  }
-}
-
-/* Optional: shrink search input on very narrow phones */
-@media (max-width: 360px) {
-  #searchInput { font-size: 15px; padding: 8px 10px; }
-}
-
-/* Safety notice */
+/* ---------- Safety notice ---------- */
 #notice {
   position: fixed;
-  top: 60px; /* equals your header height */
-  left: 0; right: 0;
+  top: 60px; left: 0; right: 0;
   background: #fff3cd;
   color: #664d03;
   border: 1px solid #ffec99;
   padding: 10px 40px 10px 12px;
   font-size: 14px;
-  z-index: 1300;
+  z-index: 1400;
 }
 #notice.hidden { display: none; }
 #notice button#noticeClose {
@@ -158,6 +126,19 @@ textarea { resize: vertical; }
   color: #664d03; cursor: pointer;
 }
 
+/* ---------- Responsive tweaks ---------- */
 @media (max-width: 640px) {
-  #notice { top: calc(60px + env(safe-area-inset-top)); font-size: 13px; }
+  #header h1 { font-size: 28px; }
+  #searchBar input { height: 42px; font-size: 14px; }
+
+  /* Turn the form into a bottom sheet on phones */
+  #formPanel {
+    right: 0; left: 0; top: auto; bottom: 0;
+    width: 100%; max-height: 65dvh;
+    border-radius: 16px 16px 0 0;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    overflow: auto;
+  }
+
+  #notice { top: 56px; font-size: 13px; }
 }

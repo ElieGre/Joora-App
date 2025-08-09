@@ -4,27 +4,34 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>JOORA</title>
-
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-  <div id="header"><h1>JOORA</h1></div>
-
-  <div id="searchBar">
-    <!-- Google Places will attach its own dropdown to this input -->
-    <input id="searchInput" type="text" placeholder="Search area (General Area / City or Village.)" autocomplete="off" />
+  <!-- Header (title + + button + search) -->
+  <div id="header">
+    <div class="header-inner">
+      <div class="header-top">
+        <h1>JOORA</h1>
+        <button id="addPointBtn" aria-label="Add pin">+</button>
+      </div>
+      <div id="searchBar">
+        <input id="searchInput" type="text"
+               placeholder="Search area (General Area / City or Village.)"
+               autocomplete="off" />
+      </div>
+    </div>
   </div>
 
-  <!-- Safety + disclaimer bar -->
+  <!-- Safety notice -->
   <div id="notice" class="hidden" role="status" aria-live="polite">
     ⚠️ Please don’t place pins while driving. And keep pins on land (not in the sea).
     <button id="noticeClose" aria-label="Dismiss notice">×</button>
   </div>
 
+  <!-- Map -->
   <div id="map"></div>
-  <button id="addPointBtn">+</button>
 
-  <!-- ✅ Form panel -->
+  <!-- Form panel -->
   <div id="formPanel" class="hidden">
     <h3>Add pothole details</h3>
 
@@ -72,7 +79,7 @@
   <!-- App JS -->
   <script src="script.js"></script>
 
-  <!-- Google Maps JS (Maps + Places). Replace YOUR_API_KEY -->
+  <!-- Google Maps JS (Maps + Places) -->
   <script async
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDjPzKk4A3SHB28ON70pQH3p9-lam2d_4Y&libraries=places&callback=initMap">
   </script>
