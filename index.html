@@ -5,28 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>JOORA</title>
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"/>
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
   <div id="header"><h1>JOORA</h1></div>
 
   <div id="searchBar">
-  <input id="searchInput" type="text" placeholder="Search area (General Area / City or Village.)" autocomplete="off" />
-  <ul id="searchResults" class="hidden"></ul>
-</div>
+    <!-- Google Places will attach its own dropdown to this input -->
+    <input id="searchInput" type="text" placeholder="Search area (General Area / City or Village.)" autocomplete="off" />
+  </div>
 
-<!-- Safety + disclaimer bar -->
-<div id="notice" class="hidden" role="status" aria-live="polite">
-  ⚠️ Please don’t place pins while driving. And keep pins on land (not in the sea).
-  <button id="noticeClose" aria-label="Dismiss notice">×</button>
-</div>
-
+  <!-- Safety + disclaimer bar -->
+  <div id="notice" class="hidden" role="status" aria-live="polite">
+    ⚠️ Please don’t place pins while driving. And keep pins on land (not in the sea).
+    <button id="noticeClose" aria-label="Dismiss notice">×</button>
+  </div>
 
   <div id="map"></div>
   <button id="addPointBtn">+</button>
 
-  <!-- ✅ FULL PANEL CONTENT -->
+  <!-- ✅ Form panel -->
   <div id="formPanel" class="hidden">
     <h3>Add pothole details</h3>
 
@@ -62,9 +60,6 @@
     </div>
   </div>
 
-  <!-- Leaflet -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
-
   <!-- Supabase SDK -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
@@ -76,5 +71,10 @@
 
   <!-- App JS -->
   <script src="script.js"></script>
+
+  <!-- Google Maps JS (Maps + Places). Replace YOUR_API_KEY -->
+  <script async
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDjPzKk4A3SHB28ON70pQH3p9-lam2d_4Y&libraries=places&callback=initMap">
+  </script>
 </body>
 </html>
