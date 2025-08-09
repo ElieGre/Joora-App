@@ -75,34 +75,51 @@ window.initMap = async () => {
 
   infoWindow = new google.maps.InfoWindow();
 
-  // Extra clamp if anything shoves the camera out
-  const LEB_BOUNDS_G = new google.maps.LatLngBounds(
-    new google.maps.LatLng(33.05, 35.10), // SW
-    new google.maps.LatLng(34.70, 36.65)  // NE
-  );
-  map.addListener('idle', () => {
-    if (!LEB_BOUNDS_G.contains(map.getCenter())) {
-      map.fitBounds(LEB_BOUNDS_G);
-    }
+// Bounds object for biasing the autocomplete
+const LEB_BOUNDS_G = new google.maps.LatLngBounds(
+  new google.maps.LatLng(33.05, 35.10), // SW
+  new google.maps.LatLng(34.70, 36.65)  // NE
+);
+
+if (searchInput) {
+  // Create a session token (recommended billing model for Autocomplete)
+  let sessionToken = new google.maps.places.AutocompleteSessionToken();
+
+  const ac = new google.maps.places.Autocomplete(searchInput, {
+    // Don't over-filter: let Google return streets, areas, etc.
+    // If you *only* want addresses, you could add: types: ['address']
+    fields: ['geometry', 'name', 'formatted_address', 'place_id'],
+    componentRestrictions: { country: ['lb'] }
   });
 
-  // Places Autocomplete: general areas (Lebanon-only)
-  if (searchInput) {
-    const ac = new google.maps.places.Autocomplete(searchInput, {
-      fields: ['geometry', 'name'],
-      types: ['(regions)'],
-      componentRestrictions: { country: ['lb'] }
-    });
-    ac.addListener('place_changed', () => {
-      const place = ac.getPlace();
-      if (!place?.geometry?.location) return;
+  // Bias to Lebanon box and keep predictions near it
+  ac.setBounds(LEB_BOUNDS_G);
+  ac.setOptions({ strictBounds: true });
 
-      const loc = place.geometry.location;
-      // move camera, but we still validate pins with the polygon
-      map.setCenter(loc);
-      map.setZoom(14);
-    });
-  }
+  // Attach the session token
+  ac.setOptions({ sessionToken });
+
+  ac.addListener('place_changed', () => {
+    const place = ac.getPlace();
+    if (!place?.geometry) return;
+
+    // Preferred: if Google gives a viewport (great for areas/streets), fit to it
+    if (place.geometry.viewport) {
+      map.fitBounds(place.geometry.viewport);
+      // Optional: cap max zoom so it stays "general"
+      if (map.getZoom() > 17) map.setZoom(17);
+    } else if (place.geometry.location) {
+      // Fallback: center at point with a reasonable zoom
+      map.setCenter(place.geometry.location);
+      map.setZoom(16);
+    }
+
+    // Start a new billing session after a selection (best practice)
+    sessionToken = new google.maps.places.AutocompleteSessionToken();
+    ac.setOptions({ sessionToken });
+  });
+}
+
 
   // Click to place/move the draft marker (validated by polygon)
   map.addListener('click', (e) => {
