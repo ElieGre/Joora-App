@@ -70,7 +70,10 @@
   <!-- Supabase SDK -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
-  <!-- Supabase keys -->
+  <!-- Turf.js (must load BEFORE your app code) -->
+  <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+
+  <!-- App config (put your real keys here) -->
   <script>
     window.SUPABASE_URL = "https://dwsfbdxkfxmbuguxxavt.supabase.co";
     window.SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3c2ZiZHhrZnhtYnVndXh4YXZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ2NTgzMTUsImV4cCI6MjA3MDIzNDMxNX0.OG9v09eBKcx65qT1ZptqggfQCE6j3Vdaeamkdw8W3Yk";
@@ -80,7 +83,7 @@
   <script src="script.js"></script>
 
   <!-- Google Maps JS (Maps + Places) -->
-  <script async
+  <script async defer
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDjPzKk4A3SHB28ON70pQH3p9-lam2d_4Y&libraries=places&callback=initMap">
   </script>
 </body>

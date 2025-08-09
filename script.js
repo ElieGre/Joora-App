@@ -23,46 +23,46 @@ noticeClose?.addEventListener('click', () => {
 });
 
 let map, draftMarker = null, addingPoint = false, isSaving = false;
-let infoWindow; // one reusable info window
+let infoWindow;             // one reusable info window
+let boundaryLayer = null;   // non-clickable Data layer for the border
 
 // ---------- Camera restriction (simple box) ----------
 const LEB_BOUNDS = { north: 34.70, south: 33.05, west: 35.10, east: 36.65 };
 
-// ---------- Lebanon land polygon (simplified) ----------
-const LEB_POLY = [
-  {lat:34.691, lng:35.493},
-  {lat:34.614, lng:35.786},
-  {lat:34.439, lng:35.905},
-  {lat:34.125, lng:36.623},
-  {lat:33.899, lng:36.611},
-  {lat:33.643, lng:36.222},
-  {lat:33.277, lng:35.938},
-  {lat:33.090, lng:35.127},
-  {lat:33.277, lng:35.093},
-  {lat:33.823, lng:35.101},
-  {lat:34.316, lng:35.126},
-  {lat:34.691, lng:35.493}, // close loop
-];
+// ---------- Precise Lebanon boundary (GeoJSON via Turf) ----------
+let lebFeature = null; // Polygon/MultiPolygon Feature used by Turf
 
-// ---------- Point-in-polygon (ray casting) ----------
-function isInsideLebanonLand(lat, lng) {
-  let inside = false;
-  for (let i = 0, j = LEB_POLY.length - 1; i < LEB_POLY.length; j = i++) {
-    const xi = LEB_POLY[i].lat, yi = LEB_POLY[i].lng;
-    const xj = LEB_POLY[j].lat, yj = LEB_POLY[j].lng;
-    const intersect = ((yi > lng) !== (yj > lng)) &&
-      (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
-    if (intersect) inside = !inside;
+async function loadLebanonBoundary() {
+  const res = await fetch('./geoBoundaries-LBN-ADM0.geojson'); // adjust path if needed
+  if (!res.ok) throw new Error('Failed to fetch boundary');
+  const gj = await res.json();
+
+  // Extract a single Feature for Turf checks
+  lebFeature = (gj.type === 'FeatureCollection') ? gj.features[0]
+            : (gj.type === 'Feature') ? gj
+            : { type: 'Feature', geometry: gj, properties: {} };
+
+  // Draw on our NON-CLICKABLE layer so map clicks still work
+  try {
+    boundaryLayer.addGeoJson(gj);
+  } catch {
+    boundaryLayer.addGeoJson(lebFeature);
   }
-  return inside;
+  boundaryLayer.setStyle({ fillOpacity: 0, strokeWeight: 2, strokeColor: '#1a73e8' });
+}
+
+function isInsideLebanon(lat, lng) {
+  if (!lebFeature) return false;
+  const pt = turf.point([lng, lat]); // GeoJSON order: [lng, lat]
+  return turf.booleanPointInPolygon(pt, lebFeature);
 }
 
 // ---------- Init Map + Places ----------
 window.initMap = async () => {
   map = new google.maps.Map(document.getElementById('map'), {
-    center: { lat: 33.8938, lng: 35.5194 }, // Sassine
+    center: { lat: 33.8938, lng: 35.5194 },
     zoom: 16,
-    restriction: { latLngBounds: LEB_BOUNDS, strictBounds: true }, // box to keep camera nearby
+    restriction: { latLngBounds: LEB_BOUNDS, strictBounds: true },
     streetViewControl: false,
     fullscreenControl: false,
     mapTypeControl: false,
@@ -75,61 +75,64 @@ window.initMap = async () => {
 
   infoWindow = new google.maps.InfoWindow();
 
-// Bounds object for biasing the autocomplete
-const LEB_BOUNDS_G = new google.maps.LatLngBounds(
-  new google.maps.LatLng(33.05, 35.10), // SW
-  new google.maps.LatLng(34.70, 36.65)  // NE
-);
+  // Create the NON-CLICKABLE border layer now that map exists
+  boundaryLayer = new google.maps.Data({ map, clickable: true });
+  boundaryLayer.addListener('click', (e) => {
+  google.maps.event.trigger(map, 'click', { latLng: e.latLng });
+});
 
-if (searchInput) {
-  // Create a session token (recommended billing model for Autocomplete)
-  let sessionToken = new google.maps.places.AutocompleteSessionToken();
+  // ------- Places Autocomplete (biased to Lebanon box) -------
+  const LEB_BOUNDS_G = new google.maps.LatLngBounds(
+    new google.maps.LatLng(33.05, 35.10), // SW
+    new google.maps.LatLng(34.70, 36.65)  // NE
+  );
 
-  const ac = new google.maps.places.Autocomplete(searchInput, {
-    // Don't over-filter: let Google return streets, areas, etc.
-    // If you *only* want addresses, you could add: types: ['address']
-    fields: ['geometry', 'name', 'formatted_address', 'place_id'],
-    componentRestrictions: { country: ['lb'] }
-  });
+  if (searchInput) {
+    let sessionToken = new google.maps.places.AutocompleteSessionToken();
 
-  // Bias to Lebanon box and keep predictions near it
-  ac.setBounds(LEB_BOUNDS_G);
-  ac.setOptions({ strictBounds: true });
+    const ac = new google.maps.places.Autocomplete(searchInput, {
+      fields: ['geometry', 'name', 'formatted_address', 'place_id'],
+      componentRestrictions: { country: ['lb'] }
+    });
 
-  // Attach the session token
-  ac.setOptions({ sessionToken });
+    ac.setBounds(LEB_BOUNDS_G);
+    ac.setOptions({ strictBounds: true, sessionToken });
 
-  ac.addListener('place_changed', () => {
-    const place = ac.getPlace();
-    if (!place?.geometry) return;
+    ac.addListener('place_changed', () => {
+      const place = ac.getPlace();
+      if (!place?.geometry) return;
 
-    // Preferred: if Google gives a viewport (great for areas/streets), fit to it
-    if (place.geometry.viewport) {
-      map.fitBounds(place.geometry.viewport);
-      // Optional: cap max zoom so it stays "general"
-      if (map.getZoom() > 17) map.setZoom(17);
-    } else if (place.geometry.location) {
-      // Fallback: center at point with a reasonable zoom
-      map.setCenter(place.geometry.location);
-      map.setZoom(16);
-    }
+      if (place.geometry.viewport) {
+        map.fitBounds(place.geometry.viewport);
+        if (map.getZoom() > 17) map.setZoom(17);
+      } else if (place.geometry.location) {
+        map.setCenter(place.geometry.location);
+        map.setZoom(16);
+      }
 
-    // Start a new billing session after a selection (best practice)
-    sessionToken = new google.maps.places.AutocompleteSessionToken();
-    ac.setOptions({ sessionToken });
-  });
-}
+      // New billing session
+      sessionToken = new google.maps.places.AutocompleteSessionToken();
+      ac.setOptions({ sessionToken });
+    });
+  }
 
+  // ------- Load the accurate boundary before enabling placement -------
+  try {
+    await loadLebanonBoundary();
+  } catch (e) {
+    console.error(e);
+    alert('Could not load Lebanon boundary. Pin placement will be disabled until it loads.');
+  }
 
-  // Click to place/move the draft marker (validated by polygon)
+  // ------- Click to place/move the draft marker (validated by polygon) -------
   map.addListener('click', (e) => {
     if (!addingPoint) return;
 
     const lat = e.latLng.lat();
     const lng = e.latLng.lng();
 
-    if (!isInsideLebanonLand(lat, lng)) {
-      alert('Please place pins on land inside Lebanon 🇱🇧');
+    if (!isInsideLebanon(lat, lng)) {
+      alert('Please place pins inside Lebanon’s legal border.');
       return;
     }
 
@@ -145,7 +148,7 @@ if (searchInput) {
     formPanel.classList.remove('hidden');
   });
 
-  // Load existing pins from Supabase
+  // ------- Load existing pins from Supabase -------
   const { data, error } = await supabase
     .from('pins')
     .select('*')
@@ -156,8 +159,8 @@ if (searchInput) {
 
 // ---------- Markers from DB ----------
 function addMarkerFromDB(row) {
-  // Skip anything outside land polygon (keeps map clean if old data slips in)
-  if (!isInsideLebanonLand(row.lat, row.lng)) return;
+  // Skip anything outside precise border
+  if (!isInsideLebanon(row.lat, row.lng)) return;
 
   const pos = { lat: row.lat, lng: row.lng };
   const marker = new google.maps.Marker({ position: pos, map });
@@ -228,9 +231,9 @@ savePinBtn.addEventListener('click', async () => {
   const lat = ll.lat();
   const lng = ll.lng();
 
-  // land-only check on save
-  if (!isInsideLebanonLand(lat, lng)) {
-    alert('This pin is outside Lebanon’s land area and cannot be saved.');
+  // Strict border check on save
+  if (!isInsideLebanon(lat, lng)) {
+    alert('This pin is outside Lebanon’s border and cannot be saved.');
     return;
   }
 
@@ -263,7 +266,7 @@ savePinBtn.addEventListener('click', async () => {
       coords: { lat: inserted.lat, lng: inserted.lng },
       createdAt: inserted.created_at
     };
-    draftMarker.addListener('click', () => {
+    draftMarker.addEventListener?.('click', () => {
       infoWindow.setContent(renderPopup(draftMarker.customData));
       infoWindow.open({ map, anchor: draftMarker });
     });
