@@ -208,7 +208,7 @@ window.initMap = async () => {
     center: LEB_BOUNDS_G.getCenter(),
     zoom: 8, // temporary; we'll fit and then lock minZoom
     streetViewControl: false,
-    fullscreenControl: true,
+    fullscreenControl: false,
     mapTypeControl: true,
     rotateControl: true,      // rotation control visible
     gestureHandling: 'greedy',
@@ -391,10 +391,13 @@ savePinBtn.addEventListener('click', async () => {
     } else {
       alert(error.message || 'Could not save pin. Please try again.');
     }
- } else {
+} else {
+  // capture the marker reference BEFORE resetting draftMarker later
+  const newMarker = draftMarker;
+
   // store full data including the ID we need for voting
-  draftMarker.customData = {
-    id        : inserted.id, // IMPORTANT
+  newMarker.customData = {
+    id        : inserted.id,
     roadSide  : inserted.roadside,
     descriptor: inserted.descriptor ?? descriptor.value,
     intensity : inserted.intensity,
@@ -406,22 +409,23 @@ savePinBtn.addEventListener('click', async () => {
   };
 
   // register in the lookup map for realtime updates
-  window.markersById[inserted.id] = draftMarker;
+  window.markersById[inserted.id] = newMarker;
 
-  // attach click for later...
-  draftMarker.addListener('click', () => {
-    infoWindow.setContent(renderPopupWithVoting(draftMarker.customData));
-    infoWindow.open({ map, anchor: draftMarker });
-    wireVoteButtons(draftMarker);
+  // attach a click handler that uses the captured reference (not draftMarker)
+  newMarker.addListener('click', function () {
+    infoWindow.setContent(renderPopupWithVoting(newMarker.customData));
+    infoWindow.open({ map, anchor: newMarker });
+    wireVoteButtons(newMarker);
   });
 
-  // ...and also OPEN IT NOW so no refresh/click needed
-  infoWindow.setContent(renderPopupWithVoting(draftMarker.customData));
-  infoWindow.open({ map, anchor: draftMarker });
-  wireVoteButtons(draftMarker);
+  // open immediately so no refresh/click needed
+  infoWindow.setContent(renderPopupWithVoting(newMarker.customData));
+  infoWindow.open({ map, anchor: newMarker });
+  wireVoteButtons(newMarker);
 
-  draftMarker.setIcon(iconForIntensity(Number(inserted.intensity)));
+  newMarker.setIcon(iconForIntensity(Number(inserted.intensity)));
 }
+
 
 
   // reset UI

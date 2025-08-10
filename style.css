@@ -127,7 +127,7 @@ textarea { resize: vertical; }
 #fab {
   position: fixed;
   left: 50%;
-  bottom: 24px;
+  bottom: 60px;
   transform: translateX(-50%);
   z-index: 1200;
   pointer-events: none; /* container ignores clicks */
