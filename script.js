@@ -2,16 +2,16 @@
 const supabase = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON);
 
 // ---------- UI refs ----------
-const addPointBtn = document.getElementById('addPointBtn');
-const formPanel   = document.getElementById('formPanel');
-const coordInput  = document.getElementById('coord');
-const roadSide    = document.getElementById('roadSide');
-const details     = document.getElementById('details');
-const intensity   = document.getElementById('intensity');
-const intensityOut= document.getElementById('intensityOut');
-const savePinBtn  = document.getElementById('savePin');
-const cancelPinBtn= document.getElementById('cancelPin');
-const searchInput = document.getElementById('searchInput');
+const addPointBtn  = document.getElementById('addPointBtn');
+const formPanel    = document.getElementById('formPanel');
+const coordInput   = document.getElementById('coord');
+const roadSide     = document.getElementById('roadSide');
+const descriptor   = document.getElementById('descriptor');   // NEW: using descriptor only
+const intensity    = document.getElementById('intensity');
+const intensityOut = document.getElementById('intensityOut');
+const savePinBtn   = document.getElementById('savePin');
+const cancelPinBtn = document.getElementById('cancelPin');
+const searchInput  = document.getElementById('searchInput');
 
 // Screens
 const landing = document.getElementById('landing');
@@ -31,15 +31,14 @@ const SESSION = {
 
 // ---------- Timings (ms) ----------
 const TIMING = {
-  screen: 1200,          // landing/disclaimer show/hide
-  swapOverlap: 300,      // overlap for nicer crossfade
-  fabDelay: 1200         // delay before FAB floats in (after map starts)
+  screen: 1200,
+  swapOverlap: 300,
+  fabDelay: 1200
 };
 
 // --------- Theme (light/dark) with persistence & map styling ---------
 const themeToggle = document.getElementById('themeToggle');
 
-// A nice dark style for Google Maps
 const DARK_MAP_STYLE = [
   { elementType: "geometry", stylers: [{ color: "#1d222b" }] },
   { elementType: "labels.text.fill", stylers: [{ color: "#c8d1da" }] },
@@ -61,14 +60,10 @@ function applyTheme(theme) {
   const root = document.documentElement;
   root.setAttribute('data-theme', theme);
   localStorage.setItem('joora_theme', theme);
-
-  // Update toggle icon
   if (themeToggle) themeToggle.textContent = theme === 'dark' ? '☀️' : '🌙';
 
-  // Update Google Maps style if map is ready
   if (window.google && map) {
     map.setOptions({ styles: theme === 'dark' ? DARK_MAP_STYLE : null });
-    // Make the border stand out a bit more on dark
     if (boundaryLayer) {
       boundaryLayer.setStyle({
         fillOpacity: 0,
@@ -78,20 +73,15 @@ function applyTheme(theme) {
     }
   }
 }
-
-// Load saved choice (or system preference on first visit)
 (function initTheme() {
   const saved = localStorage.getItem('joora_theme');
   const systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   applyTheme(saved || (systemDark ? 'dark' : 'light'));
 })();
-
-// Toggle on click
 themeToggle?.addEventListener('click', () => {
   const current = document.documentElement.getAttribute('data-theme') || 'light';
   applyTheme(current === 'dark' ? 'light' : 'dark');
 });
-
 
 // ---------- Map globals ----------
 let map, draftMarker = null, addingPoint = false, isSaving = false;
@@ -125,7 +115,7 @@ function glowingPin(color, size=36) {
 }
 function iconForIntensity(i) {
   const c = INTENSITY_COLORS[i] || INTENSITY_COLORS[3];
-  return glowingPin(c, 40); // a bit bigger
+  return glowingPin(c, 40);
 }
 
 // ---------- Screens: helpers ----------
@@ -158,7 +148,7 @@ function swapScreens(fromEl, toEl) {
   setTimeout(() => showScreen(toEl), TIMING.swapOverlap);
 }
 
-// ---------- Safety notice (session-only optional) ----------
+// ---------- Safety notice ----------
 if (!sessionStorage.getItem(SESSION.dismissedNotice)) {
   // notice?.classList.remove('hidden');
 }
@@ -173,7 +163,7 @@ function bootstrapScreens() {
   if (!agreed) {
     showScreen(landing);
     disclaimer.classList.add('hidden');
-    document.body.classList.remove('map-live', 'fab-live'); // hide map & fab until agree
+    document.body.classList.remove('map-live', 'fab-live');
   } else {
     landing.classList.add('hidden');
     disclaimer.classList.add('hidden');
@@ -184,18 +174,11 @@ function bootstrapScreens() {
 }
 bootstrapScreens();
 
-// Landing → Disclaimer (Continue acts like login)
-landingContinue?.addEventListener('click', () => {
-  swapScreens(landing, disclaimer); // slow crossfade
-});
-
-// Disclaimer → Map
+landingContinue?.addEventListener('click', () => swapScreens(landing, disclaimer));
 agreeBtn?.addEventListener('click', () => {
   sessionStorage.setItem(SESSION.sawDisclaimer, '1');
   hideScreen(disclaimer, { withFade: true });
-  // reveal map (slow fade)
   document.body.classList.add('map-live');
-  // float in FAB a bit later
   setTimeout(() => document.body.classList.add('fab-live'), TIMING.fabDelay);
 });
 
@@ -208,7 +191,6 @@ async function loadLebanonBoundary() {
             : (gj.type === 'Feature') ? gj
             : { type: 'Feature', geometry: gj, properties: {} };
 
-  // Draw on a dedicated data layer
   try { boundaryLayer.addGeoJson(gj); } catch { boundaryLayer.addGeoJson(lebFeature); }
   boundaryLayer.setStyle({ fillOpacity: 0, strokeWeight: 2, strokeColor: '#1a73e8' });
 }
@@ -274,6 +256,10 @@ window.initMap = async () => {
   try { await loadLebanonBoundary(); }
   catch (e) { console.error(e); alert('Could not load Lebanon boundary.'); }
 
+  // Apply current theme to map
+  const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+  map.setOptions({ styles: currentTheme === 'dark' ? DARK_MAP_STYLE : null });
+
   // Map click to place draft marker
   map.addListener('click', (e) => {
     if (!addingPoint) return;
@@ -294,7 +280,7 @@ window.initMap = async () => {
 
     coordInput.value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     roadSide.value = 'Middle';
-    details.value = '';
+    descriptor.value = 'Joora';       // default for new draft
     intensity.value = '3';
     intensityOut.textContent = '3';
 
@@ -307,9 +293,6 @@ window.initMap = async () => {
     .from('pins').select('*')
     .order('created_at', { ascending: false });
   if (!error && data) data.forEach(addMarkerFromDB);
-
-  const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-map.setOptions({ styles: currentTheme === 'dark' ? DARK_MAP_STYLE : null });
 };
 
 // ---------- DB markers ----------
@@ -322,12 +305,13 @@ function addMarkerFromDB(row) {
     icon: iconForIntensity(Number(row.intensity ?? 3))
   });
   marker.customData = {
-    roadSide: row.roadside || 'Middle',
-    details : row.details  || '',
-    intensity: row.intensity ?? 3,
-    coords: pos,
-    createdAt: row.created_at
+    roadSide  : row.roadside || 'Middle',
+    descriptor: row.descriptor || row.details || 'Joora',
+    intensity : row.intensity ?? 3,
+    coords    : pos,
+    createdAt : row.created_at
   };
+
   marker.addListener('click', () => {
     infoWindow.setContent(renderPopup(marker.customData));
     infoWindow.open({ map, anchor: marker });
@@ -338,11 +322,9 @@ function addMarkerFromDB(row) {
 function renderPopup(d) {
   const stars = '★'.repeat(d.intensity) + '☆'.repeat(5 - d.intensity);
   return `
-    <div>
-      <strong>Pothole</strong><br/>
-      <em>${d.roadSide}</em> side of the road<br/>
-      Intensity: ${stars} (${d.intensity}/5)<br/>
-      ${d.details ? `<div style="margin-top:6px">${escapeHtml(d.details)}</div>` : ''}
+    <div style="max-width:260px">
+      <strong>${escapeHtml(d.descriptor)}</strong> — ${escapeHtml(d.roadSide)}
+      <div>Intensity: ${stars} (${d.intensity}/5)</div>
       <div style="margin-top:6px;color:#666;font-size:12px">
         ${Number(d.coords.lat).toFixed(5)}, ${Number(d.coords.lng).toFixed(5)}
       </div>
@@ -363,7 +345,7 @@ addPointBtn?.addEventListener('click', () => {
   addingPoint = true;
   addPointBtn.disabled = true;      // avoid double-tap
   addPointBtn.classList.add('active');
-  // keep 🕳️
+  // 🕳️ stays
 });
 
 intensity.addEventListener('input', () => {
@@ -395,12 +377,12 @@ savePinBtn.addEventListener('click', async () => {
   savePinBtn.disabled = true;
   savePinBtn.textContent = 'Saving…';
 
-  const pin = {
-    lat, lng,
-    roadside: roadSide.value,
-    details: details.value.trim(),
-    intensity: Number(intensity.value)
-  };
+const pin = {
+  lat, lng,
+  roadside: roadSide.value,
+  details: descriptor.value,
+  intensity: Number(intensity.value)
+};
 
   const { data: inserted, error } = await supabase
     .from('pins').insert(pin).select().single();
@@ -410,11 +392,11 @@ savePinBtn.addEventListener('click', async () => {
     alert('Could not save pin. Please try again.');
   } else {
     draftMarker.customData = {
-      roadSide: inserted.roadside,
-      details : inserted.details,
-      intensity: inserted.intensity,
-      coords: { lat: inserted.lat, lng: inserted.lng },
-      createdAt: inserted.created_at
+      roadSide  : inserted.roadside,
+      descriptor: inserted.descriptor ?? descriptor.value,
+      intensity : inserted.intensity,
+      coords    : { lat: inserted.lat, lng: inserted.lng },
+      createdAt : inserted.created_at
     };
     draftMarker.addListener('click', () => {
       infoWindow.setContent(renderPopup(draftMarker.customData));

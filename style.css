@@ -311,17 +311,17 @@ textarea { resize: vertical; }
 }
 
 /* Form panel */
-:root[data-theme="dark"] #formPanel {
-  background: #12161d;
-  color: #e8eaed;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.55);
-}
 :root[data-theme="dark"] input[type="text"],
 :root[data-theme="dark"] select,
 :root[data-theme="dark"] textarea {
   background: #0f131a;
   color: #e8eaed;
   border-color: #243042;
+}
+/* Keep info window text dark for readability in both modes */
+:root[data-theme="dark"] .gm-style-iw,
+:root[data-theme="dark"] .gm-style-iw * {
+  color: #000 !important;
 }
 
 /* Safety notice */
