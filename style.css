@@ -27,7 +27,7 @@ body {
   gap: 10px;
 }
 
-/* Top row: title left, + button right */
+/* Top row: title left */
 .header-top {
   display: flex;
   align-items: center;
@@ -42,24 +42,69 @@ body {
   letter-spacing: 1px;
 }
 
-/* Square + button */
-#addPointBtn {
-  width: 44px;
-  height: 44px;
-  border: none;
-  border-radius: 0;          /* square */
-  background: #1a73e8;
-  color: #fff;
-  font-size: 28px;
-  line-height: 44px;
-  text-align: center;
-  cursor: pointer;
-  box-shadow: 0 6px 14px rgba(0,0,0,0.18);
-}
-#addPointBtn:disabled { opacity: .7; cursor: default; }
-#addPointBtn:hover { filter: brightness(0.95); }
+/* (Button moved to FAB; no header button styles needed) */
 
-/* Search bar (inside header, full width) */
+/* ---------- Floating Action Button (FAB) ---------- */
+#fab {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom, 50px) + 50px);
+  z-index: 1600;                 /* above map & autocomplete */
+  pointer-events: none;          /* let clicks pass through, except the button */
+}
+
+#fab #addPointBtn {
+  pointer-events: auto;
+  width: clamp(56px, 8vw, 72px);
+  height: clamp(56px, 8vw, 72px);
+  border: 0;
+  border-radius: 50%;
+  background: #1a73e8;           /* default blue */
+  color: #fff;
+  font-size: clamp(26px, 4.5vw, 34px); /* emoji size */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+
+  /* Pop + breathing glow */
+  box-shadow: 0 8px 22px rgba(0,0,0,.25);
+  animation: breathe 2.5s ease-in-out infinite;
+  transition: background .25s, transform .15s;
+}
+
+#fab #addPointBtn:active { transform: scale(.98); }
+
+/* Active (adding mode): keep emoji, just turn green */
+#fab #addPointBtn.active {
+  background: #28a745;
+}
+
+/* Keep cursor pointer even if disabled (optional) */
+#fab #addPointBtn:disabled {
+  opacity: 1;
+  cursor: pointer;
+}
+
+/* Breathing glow animation */
+@keyframes breathe {
+  0%   { box-shadow: 0 0 10px rgba(26,115,232,.55), 0 0 24px rgba(26,115,232,.35); transform: scale(1); }
+  50%  { box-shadow: 0 0 18px rgba(26,115,232,.9),  0 0 40px rgba(26,115,232,.45); transform: scale(1.05); }
+  100% { box-shadow: 0 0 10px rgba(26,115,232,.55), 0 0 24px rgba(26,115,232,.35); transform: scale(1); }
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  #fab #addPointBtn { animation: none; }
+}
+
+/* Lift FAB when the bottom sheet (form) is open — optional */
+body.form-open #fab {
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 18px + 280px);
+}
+
+/* ---------- Search bar (inside header, full width) ---------- */
 #searchBar { width: 100%; }
 #searchBar input {
   width: 100%;

@@ -32,6 +32,49 @@ const LEB_BOUNDS = { north: 34.70, south: 33.05, west: 35.10, east: 36.65 };
 // ---------- Precise Lebanon boundary (GeoJSON via Turf) ----------
 let lebFeature = null; // Polygon/MultiPolygon Feature used by Turf
 
+// Colors for 1..5 (tweak to taste)
+const INTENSITY_COLORS = {
+  1: '#22c55e',
+  2: '#a3e635', 
+  3: '#facc15',
+  4: '#f97316', 
+  5: '#ef4444'  
+};
+
+// Build a simple SVG circle marker
+function svgPin(color) {
+  return {
+    path: google.maps.SymbolPath.CIRCLE,
+    fillColor: color,
+    fillOpacity: 1,
+    scale: 12,             // size of the circle
+    strokeWeight: 3,
+    strokeColor: '#fff'
+  };
+}
+
+function glowingPin(color) {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32">
+      <!-- glow halo -->
+      <circle cx="16" cy="16" r="14" fill="${color}" fill-opacity="0.3"/>
+      <!-- main pin -->
+      <circle cx="16" cy="16" r="10" fill="${color}" stroke="white" stroke-width="3"/>
+    </svg>
+  `;
+  return {
+    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+    scaledSize: new google.maps.Size(32, 32),
+    anchor: new google.maps.Point(16, 16)
+  };
+}
+
+function iconForIntensity(i) {
+  const c = INTENSITY_COLORS[i] || INTENSITY_COLORS[3];
+  return glowingPin(c);
+}
+
+
 async function loadLebanonBoundary() {
   const res = await fetch('./geoBoundaries-LBN-ADM0.geojson'); // adjust path if needed
   if (!res.ok) throw new Error('Failed to fetch boundary');
@@ -61,12 +104,12 @@ function isInsideLebanon(lat, lng) {
 window.initMap = async () => {
   map = new google.maps.Map(document.getElementById('map'), {
     center: { lat: 33.8938, lng: 35.5194 },
-    zoom: 16,
+    zoom: 1,
     restriction: { latLngBounds: LEB_BOUNDS, strictBounds: true },
     streetViewControl: false,
     fullscreenControl: false,
-    mapTypeControl: false,
-    rotateControl: false,
+    mapTypeControl: true,
+    rotateControl: true,
     scaleControl: false,
     keyboardShortcuts: false,
     clickableIcons: false,
@@ -137,7 +180,12 @@ window.initMap = async () => {
     }
 
     if (draftMarker) draftMarker.setMap(null);
-    draftMarker = new google.maps.Marker({ position: e.latLng, map });
+    draftMarker = new google.maps.Marker({
+    position: e.latLng,
+    map,
+    icon: iconForIntensity(Number(intensity.value))
+    });
+
 
     // Fill form
     coordInput.value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
@@ -163,7 +211,14 @@ function addMarkerFromDB(row) {
   if (!isInsideLebanon(row.lat, row.lng)) return;
 
   const pos = { lat: row.lat, lng: row.lng };
-  const marker = new google.maps.Marker({ position: pos, map });
+
+  // Set the colored icon on the marker itself
+  const marker = new google.maps.Marker({
+    position: pos,
+    map,
+    icon: iconForIntensity(Number(row.intensity ?? 3))
+  });
+
   marker.customData = {
     roadSide: row.roadside || 'Middle',
     details : row.details  || '',
@@ -177,6 +232,7 @@ function addMarkerFromDB(row) {
     infoWindow.open({ map, anchor: marker });
   });
 }
+
 
 // ---------- Popup HTML ----------
 function renderPopup(d) {
@@ -207,20 +263,20 @@ addPointBtn.addEventListener('click', () => {
 
   addingPoint = true;
   addPointBtn.disabled = true;
-  addPointBtn.textContent = 'Click Map';
   addPointBtn.style.backgroundColor = '#28a745';
 });
 
 intensity.addEventListener('input', () => {
   intensityOut.textContent = intensity.value;
+  if (draftMarker) {
+    draftMarker.setIcon(iconForIntensity(Number(intensity.value)));
+  }
 });
 
 cancelPinBtn.addEventListener('click', () => {
   if (draftMarker) { draftMarker.setMap(null); draftMarker = null; }
   addingPoint = false;
   formPanel.classList.add('hidden');
-  addPointBtn.disabled = false;
-  addPointBtn.textContent = '+';
   addPointBtn.style.backgroundColor = '#007bff';
 });
 
@@ -266,20 +322,19 @@ savePinBtn.addEventListener('click', async () => {
       coords: { lat: inserted.lat, lng: inserted.lng },
       createdAt: inserted.created_at
     };
-    draftMarker.addEventListener?.('click', () => {
+    draftMarker.addListener('click', () => {
       infoWindow.setContent(renderPopup(draftMarker.customData));
       infoWindow.open({ map, anchor: draftMarker });
     });
+
   }
 
   // reset UI
   formPanel.classList.add('hidden');
   addingPoint = false;
   addPointBtn.disabled = false;
-  addPointBtn.textContent = '+';
   addPointBtn.style.backgroundColor = '#007bff';
   draftMarker = null;
-
   isSaving = false;
   savePinBtn.disabled = false;
   savePinBtn.textContent = 'Save';
