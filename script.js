@@ -36,6 +36,63 @@ const TIMING = {
   fabDelay: 1200         // delay before FAB floats in (after map starts)
 };
 
+// --------- Theme (light/dark) with persistence & map styling ---------
+const themeToggle = document.getElementById('themeToggle');
+
+// A nice dark style for Google Maps
+const DARK_MAP_STYLE = [
+  { elementType: "geometry", stylers: [{ color: "#1d222b" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#c8d1da" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#1d222b" }] },
+  { featureType: "administrative.country", elementType: "geometry.stroke", stylers: [{ color: "#465062" }] },
+  { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#e8eaed" }] },
+  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#b0bac5" }] },
+  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#182026" }] },
+  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#96a3b1" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#2a303a" }] },
+  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#c8d1da" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#39414d" }] },
+  { featureType: "transit", elementType: "geometry", stylers: [{ color: "#2a303a" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#0f151c" }] },
+  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#8aa0b6" }] }
+];
+
+function applyTheme(theme) {
+  const root = document.documentElement;
+  root.setAttribute('data-theme', theme);
+  localStorage.setItem('joora_theme', theme);
+
+  // Update toggle icon
+  if (themeToggle) themeToggle.textContent = theme === 'dark' ? '☀️' : '🌙';
+
+  // Update Google Maps style if map is ready
+  if (window.google && map) {
+    map.setOptions({ styles: theme === 'dark' ? DARK_MAP_STYLE : null });
+    // Make the border stand out a bit more on dark
+    if (boundaryLayer) {
+      boundaryLayer.setStyle({
+        fillOpacity: 0,
+        strokeWeight: 2,
+        strokeColor: theme === 'dark' ? '#86b7ff' : '#1a73e8'
+      });
+    }
+  }
+}
+
+// Load saved choice (or system preference on first visit)
+(function initTheme() {
+  const saved = localStorage.getItem('joora_theme');
+  const systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  applyTheme(saved || (systemDark ? 'dark' : 'light'));
+})();
+
+// Toggle on click
+themeToggle?.addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme') || 'light';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+});
+
+
 // ---------- Map globals ----------
 let map, draftMarker = null, addingPoint = false, isSaving = false;
 let infoWindow;
@@ -250,6 +307,9 @@ window.initMap = async () => {
     .from('pins').select('*')
     .order('created_at', { ascending: false });
   if (!error && data) data.forEach(addMarkerFromDB);
+
+  const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+map.setOptions({ styles: currentTheme === 'dark' ? DARK_MAP_STYLE : null });
 };
 
 // ---------- DB markers ----------

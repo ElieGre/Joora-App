@@ -251,3 +251,98 @@ textarea { resize: vertical; }
   }
   #fab #addPointBtn { animation: none !important; }
 }
+
+/* ---------- Theme toggle button ---------- */
+#themeToggle {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  font-size: 20px;
+  cursor: pointer;
+  display: grid; place-items: center;
+  transition: background .2s;
+}
+#themeToggle:hover { background: rgba(0,0,0,0.06); }
+
+/* ---------- Dark mode (scoped via [data-theme="dark"]) ---------- */
+:root {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* Base text + page */
+:root[data-theme="dark"] body {
+  background: #0f1115;
+  color: #e8eaed;
+}
+
+/* Header */
+:root[data-theme="dark"] #header {
+  background: rgba(13,16,22,0.75);
+  border-bottom-color: rgba(255,255,255,0.08);
+  backdrop-filter: blur(8px);
+}
+:root[data-theme="dark"] #header h1 { color: #e8eaed; }
+
+/* Search input */
+:root[data-theme="dark"] #searchBar input {
+  background: #0f131a;
+  color: #e8eaed;
+  border-color: #243042;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+}
+:root[data-theme="dark"] #searchBar input:focus {
+  border-color: #86b7ff;
+  box-shadow: 0 0 0 3px rgba(134,183,255,0.2);
+}
+
+/* Landing/Disclaimer surfaces */
+:root[data-theme="dark"] .screen {
+  background: radial-gradient(1200px 600px at 50% -10%, #0f1115 20%, #0b0d11 100%);
+}
+:root[data-theme="dark"] .screen .screen-inner {
+  background: #12161d;
+  color: #e8eaed;
+  box-shadow: 0 20px 60px rgba(0,0,0,.5);
+}
+
+/* Form panel */
+:root[data-theme="dark"] #formPanel {
+  background: #12161d;
+  color: #e8eaed;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.55);
+}
+:root[data-theme="dark"] input[type="text"],
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea {
+  background: #0f131a;
+  color: #e8eaed;
+  border-color: #243042;
+}
+
+/* Safety notice */
+:root[data-theme="dark"] #notice {
+  background: #1f2937;
+  color: #f9d976;
+  border-color: #374151;
+}
+
+/* FAB button keeps same colors but stronger shadow on dark */
+:root[data-theme="dark"] #fab #addPointBtn {
+  box-shadow: 0 10px 26px rgba(0,0,0,.6);
+}
+
+/* Autocomplete dropdown */
+:root[data-theme="dark"] .pac-container {
+  background: #0f131a;
+  color: #e8eaed;
+  border: 1px solid #243042;
+}
+:root[data-theme="dark"] .pac-item { color: #e8eaed; }
+:root[data-theme="dark"] .pac-item:hover {
+  background: rgba(134,183,255,0.12);
+}
