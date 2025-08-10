@@ -26,6 +26,34 @@
     ⚠️ Please don’t place pins while driving. And keep pins on land (not in the sea).
     <button id="noticeClose" aria-label="Dismiss notice">×</button>
   </div>
+<!-- Landing screen -->
+<section id="landing" class="screen">
+  <div class="screen-inner">
+    <h1 class="brand">JOORA</h1>
+    <p class="tagline">Spot, share, and fix potholes near you.</p>
+
+    <div class="actions">
+      <button id="landingContinue" class="primary">Continue</button>
+      <!-- Optional login -->
+      <div class="auth">
+        <input id="emailInput" type="email" placeholder="Email for magic link" />
+        <button id="loginBtn" class="ghost">Send login link</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Disclaimer overlay -->
+<section id="disclaimer" class="screen hidden">
+  <div class="screen-inner">
+    <h2>Safety first 🚧</h2>
+    <p>Please do not use your phone while driving. Only place pins when it’s safe and legal to do so.</p>
+    <p>By continuing, you agree to our community guidelines and understand that pin locations are user-generated.</p>
+    <div class="actions">
+      <button id="agreeBtn" class="primary">I Agree</button>
+    </div>
+  </div>
+</section>
 
   <!-- Map -->
   <div id="map"></div>

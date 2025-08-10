@@ -13,90 +13,151 @@ const savePinBtn  = document.getElementById('savePin');
 const cancelPinBtn= document.getElementById('cancelPin');
 const searchInput = document.getElementById('searchInput');
 
-// ---------- Safety notice ----------
+// Screens
+const landing = document.getElementById('landing');
+const landingContinue = document.getElementById('landingContinue');
+const disclaimer = document.getElementById('disclaimer');
+const agreeBtn = document.getElementById('agreeBtn');
+
+// Safety notice
 const notice = document.getElementById('notice');
 const noticeClose = document.getElementById('noticeClose');
-if (!localStorage.getItem('joora_notice_dismissed')) notice?.classList.remove('hidden');
-noticeClose?.addEventListener('click', () => {
-  notice.classList.add('hidden');
-  localStorage.setItem('joora_notice_dismissed', '1');
-});
 
-let map, draftMarker = null, addingPoint = false, isSaving = false;
-let infoWindow;             // one reusable info window
-let boundaryLayer = null;   // non-clickable Data layer for the border
-
-// ---------- Camera restriction (simple box) ----------
-const LEB_BOUNDS = { north: 34.70, south: 33.05, west: 35.10, east: 36.65 };
-
-// ---------- Precise Lebanon boundary (GeoJSON via Turf) ----------
-let lebFeature = null; // Polygon/MultiPolygon Feature used by Turf
-
-// Colors for 1..5 (tweak to taste)
-const INTENSITY_COLORS = {
-  1: '#22c55e',
-  2: '#a3e635', 
-  3: '#facc15',
-  4: '#f97316', 
-  5: '#ef4444'  
+// ---------- Session keys ----------
+const SESSION = {
+  sawDisclaimer: 'joora_saw_disclaimer_session',
+  dismissedNotice: 'joora_notice_dismissed_session'
 };
 
-// Build a simple SVG circle marker
-function svgPin(color) {
-  return {
-    path: google.maps.SymbolPath.CIRCLE,
-    fillColor: color,
-    fillOpacity: 1,
-    scale: 12,             // size of the circle
-    strokeWeight: 3,
-    strokeColor: '#fff'
-  };
-}
+// ---------- Timings (ms) ----------
+const TIMING = {
+  screen: 1200,          // landing/disclaimer show/hide
+  swapOverlap: 300,      // overlap for nicer crossfade
+  fabDelay: 1200         // delay before FAB floats in (after map starts)
+};
 
-function glowingPin(color) {
+// ---------- Map globals ----------
+let map, draftMarker = null, addingPoint = false, isSaving = false;
+let infoWindow;
+let boundaryLayer = null;
+
+// ---------- Bounds ----------
+const LEB_BOUNDS = { north: 34.70, south: 33.05, west: 35.10, east: 36.65 };
+
+// ---------- Border & Turf ----------
+let lebFeature = null;
+
+// Colors for intensity 1..5
+const INTENSITY_COLORS = { 1:'#22c55e', 2:'#a3e635', 3:'#facc15', 4:'#f97316', 5:'#ef4444' };
+
+// Glowing SVG icon
+function glowingPin(color, size=36) {
+  const rMain = Math.round(size * 0.31);
+  const rGlow = Math.round(size * 0.44);
+  const cx = Math.round(size/2), cy = cx;
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32">
-      <!-- glow halo -->
-      <circle cx="16" cy="16" r="14" fill="${color}" fill-opacity="0.3"/>
-      <!-- main pin -->
-      <circle cx="16" cy="16" r="10" fill="${color}" stroke="white" stroke-width="3"/>
-    </svg>
-  `;
+    <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
+      <circle cx="${cx}" cy="${cy}" r="${rGlow}" fill="${color}" fill-opacity="0.3"/>
+      <circle cx="${cx}" cy="${cy}" r="${rMain}" fill="${color}" stroke="white" stroke-width="${Math.max(2, size*0.09)}"/>
+    </svg>`;
   return {
     url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
-    scaledSize: new google.maps.Size(32, 32),
-    anchor: new google.maps.Point(16, 16)
+    scaledSize: new google.maps.Size(size, size),
+    anchor: new google.maps.Point(cx, cy)
   };
 }
-
 function iconForIntensity(i) {
   const c = INTENSITY_COLORS[i] || INTENSITY_COLORS[3];
-  return glowingPin(c);
+  return glowingPin(c, 40); // a bit bigger
 }
 
+// ---------- Screens: helpers ----------
+function showScreen(el) {
+  if (!el) return;
+  el.classList.remove('fade-out','hidden');
+  el.classList.add('show');
+  document.body.classList.add('has-screen');
+}
+function hideScreen(el, { withFade = true } = {}) {
+  if (!el) return;
+  if (withFade) {
+    el.classList.add('fade-out');
+    el.classList.remove('show');
+    setTimeout(() => {
+      el.classList.add('hidden');
+      el.classList.remove('fade-out');
+      const anyOpen = !!document.querySelector('.screen.show');
+      if (!anyOpen) document.body.classList.remove('has-screen');
+    }, TIMING.screen);
+  } else {
+    el.classList.remove('show');
+    el.classList.add('hidden');
+    const anyOpen = !!document.querySelector('.screen.show');
+    if (!anyOpen) document.body.classList.remove('has-screen');
+  }
+}
+function swapScreens(fromEl, toEl) {
+  hideScreen(fromEl, { withFade: true });
+  setTimeout(() => showScreen(toEl), TIMING.swapOverlap);
+}
 
+// ---------- Safety notice (session-only optional) ----------
+if (!sessionStorage.getItem(SESSION.dismissedNotice)) {
+  // notice?.classList.remove('hidden');
+}
+noticeClose?.addEventListener('click', () => {
+  notice.classList.add('hidden');
+  sessionStorage.setItem(SESSION.dismissedNotice, '1');
+});
+
+// ---------- Boot screens ----------
+function bootstrapScreens() {
+  const agreed = sessionStorage.getItem(SESSION.sawDisclaimer) === '1';
+  if (!agreed) {
+    showScreen(landing);
+    disclaimer.classList.add('hidden');
+    document.body.classList.remove('map-live', 'fab-live'); // hide map & fab until agree
+  } else {
+    landing.classList.add('hidden');
+    disclaimer.classList.add('hidden');
+    document.body.classList.remove('has-screen');
+    document.body.classList.add('map-live');
+    setTimeout(() => document.body.classList.add('fab-live'), TIMING.fabDelay);
+  }
+}
+bootstrapScreens();
+
+// Landing → Disclaimer (Continue acts like login)
+landingContinue?.addEventListener('click', () => {
+  swapScreens(landing, disclaimer); // slow crossfade
+});
+
+// Disclaimer → Map
+agreeBtn?.addEventListener('click', () => {
+  sessionStorage.setItem(SESSION.sawDisclaimer, '1');
+  hideScreen(disclaimer, { withFade: true });
+  // reveal map (slow fade)
+  document.body.classList.add('map-live');
+  // float in FAB a bit later
+  setTimeout(() => document.body.classList.add('fab-live'), TIMING.fabDelay);
+});
+
+// ---------- Load Lebanon boundary ----------
 async function loadLebanonBoundary() {
-  const res = await fetch('./geoBoundaries-LBN-ADM0.geojson'); // adjust path if needed
+  const res = await fetch('./geoBoundaries-LBN-ADM0.geojson');
   if (!res.ok) throw new Error('Failed to fetch boundary');
   const gj = await res.json();
-
-  // Extract a single Feature for Turf checks
   lebFeature = (gj.type === 'FeatureCollection') ? gj.features[0]
             : (gj.type === 'Feature') ? gj
             : { type: 'Feature', geometry: gj, properties: {} };
 
-  // Draw on our NON-CLICKABLE layer so map clicks still work
-  try {
-    boundaryLayer.addGeoJson(gj);
-  } catch {
-    boundaryLayer.addGeoJson(lebFeature);
-  }
+  // Draw on a dedicated data layer
+  try { boundaryLayer.addGeoJson(gj); } catch { boundaryLayer.addGeoJson(lebFeature); }
   boundaryLayer.setStyle({ fillOpacity: 0, strokeWeight: 2, strokeColor: '#1a73e8' });
 }
-
 function isInsideLebanon(lat, lng) {
   if (!lebFeature) return false;
-  const pt = turf.point([lng, lat]); // GeoJSON order: [lng, lat]
+  const pt = turf.point([lng, lat]);
   return turf.booleanPointInPolygon(pt, lebFeature);
 }
 
@@ -104,12 +165,12 @@ function isInsideLebanon(lat, lng) {
 window.initMap = async () => {
   map = new google.maps.Map(document.getElementById('map'), {
     center: { lat: 33.8938, lng: 35.5194 },
-    zoom: 1,
+    zoom: 16,
     restriction: { latLngBounds: LEB_BOUNDS, strictBounds: true },
     streetViewControl: false,
     fullscreenControl: false,
-    mapTypeControl: true,
-    rotateControl: true,
+    mapTypeControl: false,
+    rotateControl: false,
     scaleControl: false,
     keyboardShortcuts: false,
     clickableIcons: false,
@@ -118,33 +179,28 @@ window.initMap = async () => {
 
   infoWindow = new google.maps.InfoWindow();
 
-  // Create the NON-CLICKABLE border layer now that map exists
+  // Click-through border layer; forward clicks to map handler
   boundaryLayer = new google.maps.Data({ map, clickable: true });
   boundaryLayer.addListener('click', (e) => {
-  google.maps.event.trigger(map, 'click', { latLng: e.latLng });
-});
+    google.maps.event.trigger(map, 'click', { latLng: e.latLng });
+  });
 
-  // ------- Places Autocomplete (biased to Lebanon box) -------
+  // Places (legacy Autocomplete OK for existing keys)
   const LEB_BOUNDS_G = new google.maps.LatLngBounds(
-    new google.maps.LatLng(33.05, 35.10), // SW
-    new google.maps.LatLng(34.70, 36.65)  // NE
+    new google.maps.LatLng(33.05, 35.10),
+    new google.maps.LatLng(34.70, 36.65)
   );
-
   if (searchInput) {
     let sessionToken = new google.maps.places.AutocompleteSessionToken();
-
     const ac = new google.maps.places.Autocomplete(searchInput, {
       fields: ['geometry', 'name', 'formatted_address', 'place_id'],
       componentRestrictions: { country: ['lb'] }
     });
-
     ac.setBounds(LEB_BOUNDS_G);
     ac.setOptions({ strictBounds: true, sessionToken });
-
     ac.addListener('place_changed', () => {
       const place = ac.getPlace();
       if (!place?.geometry) return;
-
       if (place.geometry.viewport) {
         map.fitBounds(place.geometry.viewport);
         if (map.getZoom() > 17) map.setZoom(17);
@@ -152,25 +208,18 @@ window.initMap = async () => {
         map.setCenter(place.geometry.location);
         map.setZoom(16);
       }
-
-      // New billing session
       sessionToken = new google.maps.places.AutocompleteSessionToken();
       ac.setOptions({ sessionToken });
     });
   }
 
-  // ------- Load the accurate boundary before enabling placement -------
-  try {
-    await loadLebanonBoundary();
-  } catch (e) {
-    console.error(e);
-    alert('Could not load Lebanon boundary. Pin placement will be disabled until it loads.');
-  }
+  // Load precise border
+  try { await loadLebanonBoundary(); }
+  catch (e) { console.error(e); alert('Could not load Lebanon boundary.'); }
 
-  // ------- Click to place/move the draft marker (validated by polygon) -------
+  // Map click to place draft marker
   map.addListener('click', (e) => {
     if (!addingPoint) return;
-
     const lat = e.latLng.lat();
     const lng = e.latLng.lng();
 
@@ -181,44 +230,37 @@ window.initMap = async () => {
 
     if (draftMarker) draftMarker.setMap(null);
     draftMarker = new google.maps.Marker({
-    position: e.latLng,
-    map,
-    icon: iconForIntensity(Number(intensity.value))
+      position: e.latLng,
+      map,
+      icon: iconForIntensity(Number(intensity.value))
     });
 
-
-    // Fill form
     coordInput.value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     roadSide.value = 'Middle';
     details.value = '';
     intensity.value = '3';
     intensityOut.textContent = '3';
+
     formPanel.classList.remove('hidden');
+    document.body.classList.add('form-open');
   });
 
-  // ------- Load existing pins from Supabase -------
+  // Load pins from DB
   const { data, error } = await supabase
-    .from('pins')
-    .select('*')
+    .from('pins').select('*')
     .order('created_at', { ascending: false });
-
   if (!error && data) data.forEach(addMarkerFromDB);
 };
 
-// ---------- Markers from DB ----------
+// ---------- DB markers ----------
 function addMarkerFromDB(row) {
-  // Skip anything outside precise border
   if (!isInsideLebanon(row.lat, row.lng)) return;
-
   const pos = { lat: row.lat, lng: row.lng };
-
-  // Set the colored icon on the marker itself
   const marker = new google.maps.Marker({
     position: pos,
     map,
     icon: iconForIntensity(Number(row.intensity ?? 3))
   });
-
   marker.customData = {
     roadSide: row.roadside || 'Middle',
     details : row.details  || '',
@@ -226,15 +268,13 @@ function addMarkerFromDB(row) {
     coords: pos,
     createdAt: row.created_at
   };
-
   marker.addListener('click', () => {
     infoWindow.setContent(renderPopup(marker.customData));
     infoWindow.open({ map, anchor: marker });
   });
 }
 
-
-// ---------- Popup HTML ----------
+// ---------- Popup ----------
 function renderPopup(d) {
   const stars = '★'.repeat(d.intensity) + '☆'.repeat(5 - d.intensity);
   return `
@@ -257,37 +297,35 @@ function escapeHtml(str) {
 }
 
 // ---------- UI actions ----------
-addPointBtn.addEventListener('click', () => {
+addPointBtn?.addEventListener('click', () => {
   const ok = confirm("Safety first: don't place pins while driving.\n\nContinue?");
   if (!ok) return;
-
   addingPoint = true;
-  addPointBtn.disabled = true;
-  addPointBtn.style.backgroundColor = '#28a745';
+  addPointBtn.disabled = true;      // avoid double-tap
+  addPointBtn.classList.add('active');
+  // keep 🕳️
 });
 
 intensity.addEventListener('input', () => {
   intensityOut.textContent = intensity.value;
-  if (draftMarker) {
-    draftMarker.setIcon(iconForIntensity(Number(intensity.value)));
-  }
+  if (draftMarker) draftMarker.setIcon(iconForIntensity(Number(intensity.value)));
 });
 
 cancelPinBtn.addEventListener('click', () => {
   if (draftMarker) { draftMarker.setMap(null); draftMarker = null; }
   addingPoint = false;
   formPanel.classList.add('hidden');
-  addPointBtn.style.backgroundColor = '#007bff';
+  document.body.classList.remove('form-open');
+  addPointBtn.disabled = false;
+  addPointBtn.classList.remove('active');
 });
 
 savePinBtn.addEventListener('click', async () => {
   if (!draftMarker || isSaving) return;
 
   const ll = draftMarker.getPosition();
-  const lat = ll.lat();
-  const lng = ll.lng();
+  const lat = ll.lat(), lng = ll.lng();
 
-  // Strict border check on save
   if (!isInsideLebanon(lat, lng)) {
     alert('This pin is outside Lebanon’s border and cannot be saved.');
     return;
@@ -305,16 +343,12 @@ savePinBtn.addEventListener('click', async () => {
   };
 
   const { data: inserted, error } = await supabase
-    .from('pins')
-    .insert(pin)
-    .select()
-    .single();
+    .from('pins').insert(pin).select().single();
 
   if (error) {
     console.error('Save error:', error);
     alert('Could not save pin. Please try again.');
   } else {
-    // Convert draft → permanent marker with popup
     draftMarker.customData = {
       roadSide: inserted.roadside,
       details : inserted.details,
@@ -326,15 +360,17 @@ savePinBtn.addEventListener('click', async () => {
       infoWindow.setContent(renderPopup(draftMarker.customData));
       infoWindow.open({ map, anchor: draftMarker });
     });
-
+    draftMarker.setIcon(iconForIntensity(Number(inserted.intensity)));
   }
 
   // reset UI
   formPanel.classList.add('hidden');
+  document.body.classList.remove('form-open');
   addingPoint = false;
   addPointBtn.disabled = false;
-  addPointBtn.style.backgroundColor = '#007bff';
+  addPointBtn.classList.remove('active');
   draftMarker = null;
+
   isSaving = false;
   savePinBtn.disabled = false;
   savePinBtn.textContent = 'Save';
