@@ -1,18 +1,15 @@
-/* ---------- Base layout ---------- */
-html, body { height: 100%; margin: 0; }
-body {
-  display: flex;
-  flex-direction: column;
+/* ---------- Page & Map ---------- */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
   font-family: Arial, sans-serif;
 }
 
-/* Map fills everything below the sticky header */
 #map {
-  flex: 1 1 auto; min-height: 0; width: 100%;
-  opacity: 0; /* fade-in after disclaimer */
-  transition: opacity 1.2s ease 0.8s; /* slower, with delay */
+  width: 100%;
+  height: 100%;
 }
-body.map-live #map { opacity: 1; }
 
 /* ---------- Header ---------- */
 #header {
@@ -23,6 +20,7 @@ body.map-live #map { opacity: 1; }
   backdrop-filter: blur(6px);
   border-bottom: 1px solid rgba(0,0,0,0.06);
 }
+
 #header .header-inner {
   max-width: 1100px;
   margin: 0 auto;
@@ -30,11 +28,13 @@ body.map-live #map { opacity: 1; }
   display: grid;
   gap: 10px;
 }
+
 .header-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
+
 #header h1 {
   margin: 0;
   line-height: 1;
@@ -43,125 +43,21 @@ body.map-live #map { opacity: 1; }
   letter-spacing: 1px;
 }
 
-/* ---------- Floating Action Button (FAB) ---------- */
-#fab {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%) translateY(12px);
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
-  z-index: 1600;
-  pointer-events: none;
-  opacity: 0; /* reveal later, slower */
-  transition: opacity 1.6s ease, transform 1.6s ease;
-}
-/* show the FAB on a separate timeline so it feels slower */
-body.fab-live #fab {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
-
-#fab #addPointBtn {
-  pointer-events: auto;
-  width: clamp(56px, 8vw, 72px);
-  height: clamp(56px, 8vw, 72px);
+/* Theme toggle (map-only) */
+#themeToggle {
+  appearance: none;
   border: 0;
-  border-radius: 50%;
-  background: #1a73e8;           /* default blue */
-  color: #fff;
-  font-size: clamp(26px, 4.5vw, 34px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: transparent;
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  font-size: 20px;
   cursor: pointer;
-
-  /* Pop + breathing glow */
-  box-shadow: 0 8px 22px rgba(0,0,0,.25);
-  animation: breathe 2.5s ease-in-out infinite;
-  transition: background .25s, transform .15s;
-}
-#fab #addPointBtn:active { transform: scale(.98); }
-#fab #addPointBtn.active { background: #28a745; }
-#fab #addPointBtn:disabled { opacity: 1; cursor: pointer; }
-
-@keyframes breathe {
-  0%   { box-shadow: 0 0 10px rgba(26,115,232,.55), 0 0 24px rgba(26,115,232,.35); transform: scale(1); }
-  50%  { box-shadow: 0 0 18px rgba(26,115,232,.9),  0 0 40px rgba(26,115,232,.45); transform: scale(1.05); }
-  100% { box-shadow: 0 0 10px rgba(26,115,232,.55), 0 0 24px rgba(26,115,232,.35); transform: scale(1); }
-}
-
-/* ---------- Full-screen screens (landing + disclaimer) ---------- */
-.screen {
-  position: fixed; inset: 0;
-  background: linear-gradient(180deg, #ffffff 0%, #f6f9fe 100%);
   display: grid; place-items: center;
-  z-index: 2000;
+  transition: background .2s;
+}
+#themeToggle:hover { background: rgba(0,0,0,0.06); }
 
-  /* slower, more dramatic transitions */
-  opacity: 0;
-  transform: translateY(14px);
-  pointer-events: none;
-  transition: opacity 1.2s ease, transform 1.2s ease;
-}
-.screen.hidden { display: none; }
-.screen.show {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
-  display: grid;
-}
-.screen.fade-out {
-  opacity: 0;
-  transform: translateY(14px);
-}
-
-/* card */
-.screen .screen-inner {
-  width: min(92vw, 520px);
-  background: #fff;
-  border-radius: 16px;
-  padding: 28px;
-  box-shadow: 0 20px 60px rgba(0,0,0,.15);
-  text-align: center;
-}
-
-/* text & actions */
-.screen .brand { font-size: 48px; margin: 0 0 8px; letter-spacing: 2px; }
-.screen .tagline { color: #444; margin: 4px 0 20px; }
-.screen .actions { display: grid; gap: 12px; justify-items: center; }
-
-.screen .primary {
-  background: #1a73e8; color: #fff; border: 0;
-  padding: 10px 18px; border-radius: 10px; cursor: pointer;
-}
-.screen .primary:hover { filter: brightness(0.95); }
-.screen .ghost {
-  background: #f1f3f5; color: #222; border: 0;
-  padding: 8px 14px; border-radius: 10px; cursor: pointer;
-}
-.screen .auth { display: grid; gap: 8px; width: 100%; margin-top: 6px; }
-.screen .auth input {
-  width: 100%; height: 40px; border: 1px solid #cfcfcf; border-radius: 8px;
-  padding: 0 10px; font-size: 14px;
-}
-
-/* Float-in of inner elements with stagger (also slower) */
-.screen .screen-inner > * {
-  opacity: 0;
-  transform: translateY(14px);
-  transition: opacity 1s ease, transform 1s ease;
-}
-.screen.show .screen-inner > * { opacity: 1; transform: translateY(0); }
-.screen.show .screen-inner > *:nth-child(1) { transition-delay: .15s; }
-.screen.show .screen-inner > *:nth-child(2) { transition-delay: .32s; }
-.screen.show .screen-inner > *:nth-child(3) { transition-delay: .49s; }
-.screen.show .screen-inner > *:nth-child(4) { transition-delay: .66s; }
-.screen.show .screen-inner > *:nth-child(5) { transition-delay: .83s; }
-
-/* Prevent map interaction under screens */
-body.has-screen #map { pointer-events: none; filter: blur(1px); }
-body.has-screen #fab { display: none; }
-
-/* ---------- Search bar (inside header, full width) ---------- */
+/* ---------- Search ---------- */
 #searchBar { width: 100%; }
 #searchBar input {
   width: 100%;
@@ -186,7 +82,25 @@ body.has-screen #fab { display: none; }
   border-radius: 0 !important;
 }
 
-/* ---------- Pin form panel ---------- */
+/* ---------- Safety notice ---------- */
+#notice {
+  position: fixed;
+  top: 60px; left: 0; right: 0;
+  background: #fff3cd;
+  color: #664d03;
+  border: 1px solid #ffec99;
+  padding: 10px 40px 10px 12px;
+  font-size: 14px;
+  z-index: 1400;
+}
+#notice.hidden { display: none; }
+#notice button#noticeClose {
+  position: absolute; right: 8px; top: 6px;
+  border: 0; background: transparent; font-size: 20px; line-height: 1;
+  color: #664d03; cursor: pointer;
+}
+
+/* ---------- Form panel ---------- */
 #formPanel.hidden { display: none; }
 #formPanel {
   position: fixed;
@@ -209,30 +123,77 @@ textarea { resize: vertical; }
 .actions .primary { background: #28a745; color: #fff; border: none; border-radius: 8px; padding: 8px 12px; cursor: pointer; }
 .actions .ghost { background: #eee; color: #333; border: none; border-radius: 8px; padding: 8px 12px; cursor: pointer; }
 
-/* ---------- Safety notice ---------- */
-#notice {
+/* ---------- FAB (Hole button) ---------- */
+#fab {
   position: fixed;
-  top: 60px; left: 0; right: 0;
-  background: #fff3cd;
-  color: #664d03;
-  border: 1px solid #ffec99;
-  padding: 10px 40px 10px 12px;
-  font-size: 14px;
-  z-index: 1400;
-}
-#notice.hidden { display: none; }
-#notice button#noticeClose {
-  position: absolute; right: 8px; top: 6px;
-  border: 0; background: transparent; font-size: 20px; line-height: 1;
-  color: #664d03; cursor: pointer;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 1200;
+  pointer-events: none; /* container ignores clicks */
 }
 
-/* ---------- Responsive tweaks ---------- */
+#addPointBtn {
+  pointer-events: auto; /* button is clickable */
+  width: 56px;
+  height: 56px;
+  border: none;
+  border-radius: 50%;
+  background: #1a73e8;
+  color: #fff;
+  font-size: 28px;
+  display: grid; place-items: center;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.3), 0 0 0 0 rgba(26,115,232,0.6);
+  animation: breathe 3.5s ease-in-out infinite;
+  transition: background .3s, transform .2s, box-shadow .3s;
+}
+#addPointBtn.active {
+  background: #28a745;
+  animation: none;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.3);
+}
+@keyframes breathe {
+  0%   { box-shadow: 0 10px 24px rgba(0,0,0,0.3), 0 0 0 0 rgba(26,115,232,0.25); }
+  50%  { box-shadow: 0 12px 28px rgba(0,0,0,0.34), 0 0 0 16px rgba(26,115,232,0.08); transform: translateY(-1px);}
+  100% { box-shadow: 0 10px 24px rgba(0,0,0,0.3), 0 0 0 0 rgba(26,115,232,0.0); transform: translateY(0);}
+}
+
+/* ---------- Landing / Disclaimer screens ---------- */
+.screen.hidden { display: none; }
+.screen {
+  position: fixed; inset: 0;
+  z-index: 1500;
+  display: grid; place-items: center;
+  background: radial-gradient(1200px 600px at 50% -10%, #ffffff 10%, #f8fafc 100%);
+}
+.screen .screen-inner {
+  width: min(520px, 92vw);
+  background: #fff;
+  border-radius: 16px;
+  padding: 26px 22px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.15);
+  text-align: center;
+}
+.screen .brand { margin: 0 0 10px; font-size: 40px; letter-spacing: 1px; }
+.screen .tagline { margin: 8px 0 18px; color: #444; }
+.screen .actions { display: grid; gap: 10px; justify-items: center; }
+.screen .actions .primary {
+  background: #1a73e8; color: #fff; border: 0;
+  padding: 10px 16px; border-radius: 12px; cursor: pointer;
+}
+.screen .actions .ghost {
+  background: #f3f4f6; color: #111; border: 1px solid #e5e7eb;
+  padding: 8px 12px; border-radius: 10px; cursor: pointer;
+}
+
+/* Utility */
+.hidden { display: none !important; }
+
+/* ---------- Responsive ---------- */
 @media (max-width: 640px) {
   #header h1 { font-size: 28px; }
   #searchBar input { height: 42px; font-size: 14px; }
-
-  /* Bottom sheet on phones */
   #formPanel {
     right: 0; left: 0; top: auto; bottom: 0;
     width: 100%; max-height: 65dvh;
@@ -240,109 +201,5 @@ textarea { resize: vertical; }
     padding-bottom: calc(16px + env(safe-area-inset-bottom));
     overflow: auto;
   }
-
   #notice { top: 56px; font-size: 13px; }
-}
-
-/* Reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  #fab, #map, .screen, .screen .screen-inner > * {
-    transition: none !important; transform: none !important; opacity: 1 !important;
-  }
-  #fab #addPointBtn { animation: none !important; }
-}
-
-/* ---------- Theme toggle button ---------- */
-#themeToggle {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  width: 40px; height: 40px;
-  border-radius: 10px;
-  font-size: 20px;
-  cursor: pointer;
-  display: grid; place-items: center;
-  transition: background .2s;
-}
-#themeToggle:hover { background: rgba(0,0,0,0.06); }
-
-/* ---------- Dark mode (scoped via [data-theme="dark"]) ---------- */
-:root {
-  color-scheme: light;
-}
-:root[data-theme="dark"] {
-  color-scheme: dark;
-}
-
-/* Base text + page */
-:root[data-theme="dark"] body {
-  background: #0f1115;
-  color: #e8eaed;
-}
-
-/* Header */
-:root[data-theme="dark"] #header {
-  background: rgba(13,16,22,0.75);
-  border-bottom-color: rgba(255,255,255,0.08);
-  backdrop-filter: blur(8px);
-}
-:root[data-theme="dark"] #header h1 { color: #e8eaed; }
-
-/* Search input */
-:root[data-theme="dark"] #searchBar input {
-  background: #0f131a;
-  color: #e8eaed;
-  border-color: #243042;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.35);
-}
-:root[data-theme="dark"] #searchBar input:focus {
-  border-color: #86b7ff;
-  box-shadow: 0 0 0 3px rgba(134,183,255,0.2);
-}
-
-/* Landing/Disclaimer surfaces */
-:root[data-theme="dark"] .screen {
-  background: radial-gradient(1200px 600px at 50% -10%, #0f1115 20%, #0b0d11 100%);
-}
-:root[data-theme="dark"] .screen .screen-inner {
-  background: #12161d;
-  color: #e8eaed;
-  box-shadow: 0 20px 60px rgba(0,0,0,.5);
-}
-
-/* Form panel */
-:root[data-theme="dark"] input[type="text"],
-:root[data-theme="dark"] select,
-:root[data-theme="dark"] textarea {
-  background: #0f131a;
-  color: #e8eaed;
-  border-color: #243042;
-}
-/* Keep info window text dark for readability in both modes */
-:root[data-theme="dark"] .gm-style-iw,
-:root[data-theme="dark"] .gm-style-iw * {
-  color: #000 !important;
-}
-
-/* Safety notice */
-:root[data-theme="dark"] #notice {
-  background: #1f2937;
-  color: #f9d976;
-  border-color: #374151;
-}
-
-/* FAB button keeps same colors but stronger shadow on dark */
-:root[data-theme="dark"] #fab #addPointBtn {
-  box-shadow: 0 10px 26px rgba(0,0,0,.6);
-}
-
-/* Autocomplete dropdown */
-:root[data-theme="dark"] .pac-container {
-  background: #0f131a;
-  color: #e8eaed;
-  border: 1px solid #243042;
-}
-:root[data-theme="dark"] .pac-item { color: #e8eaed; }
-:root[data-theme="dark"] .pac-item:hover {
-  background: rgba(134,183,255,0.12);
 }
