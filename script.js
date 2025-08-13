@@ -114,6 +114,102 @@ function escapeHtml(str) {
     .replaceAll("'", '&#039;');
 }
 
+// ------ Export panel wiring ------
+// ------ KML tutorial panel wiring (IDs now match HTML) ------
+const kmlTutorialPanel   = document.getElementById('kmlTutorialPanel');
+const openKMLBtn         = document.getElementById('downloadKMLBtn');       // header button
+const confirmDownloadKML = document.getElementById('confirmDownloadKML');    // panel primary button
+const cancelKMLTutorial  = document.getElementById('cancelKMLTutorial');     // panel cancel
+
+openKMLBtn?.addEventListener('click', () => {
+  kmlTutorialPanel?.classList.remove('hidden');
+});
+
+cancelKMLTutorial?.addEventListener('click', () => {
+  kmlTutorialPanel?.classList.add('hidden');
+});
+
+confirmDownloadKML?.addEventListener('click', async () => {
+  await generateAndDownloadKML();
+  kmlTutorialPanel?.classList.add('hidden');
+});
+
+
+// ------ KML generator (intensity-colored pins) ------
+async function generateAndDownloadKML() {
+  try {
+    const { data, error } = await supabase
+      .from('pins_with_scores')
+      .select('lat, lng, roadside, descriptor, intensity');
+
+    if (error) {
+      console.error('Error fetching pins:', error);
+      alert('Could not fetch map data.');
+      return;
+    }
+    if (!data || data.length === 0) {
+      alert('No pins found to export.');
+      return;
+    }
+
+    const INTENSITY_COLORS = { 1:'#22c55e', 2:'#a3e635', 3:'#facc15', 4:'#f97316', 5:'#ef4444' };
+    const rgbToKml = (hex) => `ff${hex.slice(5,7)}${hex.slice(3,5)}${hex.slice(1,3)}`; // aabbggrr
+
+    let kmlHeader = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>JOORA Potholes</name>
+`;
+    Object.entries(INTENSITY_COLORS).forEach(([lvl, hex]) => {
+      kmlHeader += `
+    <Style id="intensity${lvl}">
+      <IconStyle>
+        <color>${rgbToKml(hex)}</color>
+        <scale>1.2</scale>
+        <Icon>
+          <href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href>
+        </Icon>
+      </IconStyle>
+    </Style>`;
+    });
+
+    const kmlPlacemarks = data.map(p => `
+    <Placemark>
+      <name>${escapeHtml(p.descriptor || 'Joora')}</name>
+      <description><![CDATA[
+        Road side: ${escapeHtml(p.roadside || 'Middle')}<br/>
+        Intensity: ${p.intensity || 3}/5
+      ]]></description>
+      <styleUrl>#intensity${p.intensity || 3}</styleUrl>
+      <Point>
+        <coordinates>${p.lng},${p.lat},0</coordinates>
+      </Point>
+    </Placemark>`).join('');
+
+    const kmlFooter = `
+  </Document>
+</kml>`;
+
+    const blob = new Blob([kmlHeader + kmlPlacemarks + kmlFooter], {
+      type: 'application/vnd.google-earth.kml+xml'
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `joora_map_${new Date().toISOString().slice(0,10)}.kml`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+  } catch (err) {
+    console.error('KML export error:', err);
+    alert('Error generating KML file.');
+  }
+}
+
+
+
 // Popup HTML with voting
 function renderPopupWithVoting(d) {
   const stars = '★'.repeat(d.intensity) + '☆'.repeat(5 - d.intensity);

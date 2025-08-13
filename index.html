@@ -13,7 +13,7 @@
       <div class="header-top">
         <h1>JOORA</h1>
         <button id="themeToggle" aria-label="Toggle dark mode" title="Toggle dark mode">🌙</button>
-
+        <button id="downloadKMLBtn" title="Download KML">⬇️ Download Map</button>
       </div>
       <div id="searchBar">
         <input id="searchInput" type="text"
@@ -28,42 +28,45 @@
     ⚠️ Please don’t place pins while driving. And keep pins on land (not in the sea).
     <button id="noticeClose" aria-label="Dismiss notice">×</button>
   </div>
-<!-- Landing screen -->
-<section id="landing" class="screen">
-  <div class="screen-inner">
-    <h1 class="brand">JOORA</h1>
-    <p class="tagline">Spot, share, and fix potholes near you.</p>
 
-    <div class="actions">
-      <button id="landingContinue" class="primary">Continue</button>
-      <!-- Optional login -->
-      <div class="auth">
-        <input id="emailInput" type="email" placeholder="Email for magic link" />
-        <button id="loginBtn" class="ghost">Send login link</button>
+  <!-- Landing screen -->
+  <section id="landing" class="screen">
+    <div class="screen-inner">
+      <h1 class="brand">JOORA</h1>
+      <p class="tagline">Spot, share, and fix potholes near you.</p>
+
+      <div class="actions">
+        <button id="landingContinue" class="primary">Continue</button>
+        <!-- Optional login -->
+        <div class="auth">
+          <input id="emailInput" type="email" placeholder="Email for magic link" />
+          <button id="loginBtn" class="ghost">Send login link</button>
+        </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- Disclaimer overlay -->
-<section id="disclaimer" class="screen hidden">
-  <div class="screen-inner">
-    <h2>Safety first 🚧</h2>
-    <p>Please do not use your phone while driving. Only place pins when it’s safe and legal to do so.</p>
-    <p>By continuing, you agree to our community guidelines and understand that pin locations are user-generated.</p>
-    <div class="actions">
-      <button id="agreeBtn" class="primary">I Agree</button>
+  <!-- Disclaimer overlay -->
+  <section id="disclaimer" class="screen hidden">
+    <div class="screen-inner">
+      <h2>Safety first 🚧</h2>
+      <p>Please do not use your phone while driving. Only place pins when it’s safe and legal to do so.</p>
+      <p>By continuing, you agree to our community guidelines and understand that pin locations are user-generated.</p>
+      <div class="actions">
+        <button id="agreeBtn" class="primary">I Agree</button>
+      </div>
     </div>
-  </div>
-</section>
+  </section>
 
   <!-- Map -->
   <div id="map"></div>
 
-<div id="fab">
-  <button id="addPointBtn" aria-label="Add pothole">🕳️</button>
-</div>
-  <!-- Form panel -->
+  <!-- Floating action button -->
+  <div id="fab">
+    <button id="addPointBtn" aria-label="Add pothole">🕳️</button>
+  </div>
+
+  <!-- Form panel (for adding potholes) -->
   <div id="formPanel" class="hidden">
     <h3>Add pothole details</h3>
 
@@ -81,17 +84,16 @@
       </select>
     </div>
 
-<div class="row">
-  <label for="descriptor">Issue type</label>
-  <select id="descriptor">
-    <option value="Joora" selected>Joora</option>
-    <option value="Large crack">Large crack</option>
-    <option value="Hole">Hole</option>
-    <option value="Debris">Debris</option>
-    <option value="Other">Other</option>
-  </select>
-</div>
-
+    <div class="row">
+      <label for="descriptor">Issue type</label>
+      <select id="descriptor">
+        <option value="Joora" selected>Joora</option>
+        <option value="Large crack">Large crack</option>
+        <option value="Hole">Hole</option>
+        <option value="Debris">Debris</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
 
     <div class="row">
       <label for="intensity">Intensity</label>
@@ -106,13 +108,37 @@
     </div>
   </div>
 
+  <!-- KML tutorial panel (for downloading map) -->
+<div id="kmlTutorialPanel" class="hidden" role="dialog" aria-modal="true" aria-labelledby="kmlTitle">
+  <div class="panel-card">
+    <h3 id="kmlTitle">Download & Import Map to Google Maps</h3>
+    <ul>
+      <li><a href="https://support.google.com/maps/answer/3024454?hl=en" target="_blank">📱 iOS instructions</a></li>
+      <li><a href="https://support.google.com/maps/answer/3024454?hl=en&co=GENIE.Platform%3DAndroid" target="_blank">📱 Android instructions</a></li>
+      <li><a href="https://support.google.com/mymaps/answer/3024836?hl=en" target="_blank">💻 PC instructions</a></li>
+    </ul>
+    <p>Steps:</p>
+    <ul>
+      <li>Download the KML file using the button below.</li>
+      <li>Open Google Maps or Google My Maps.</li>
+      <li>Import the file as a custom map layer.</li>
+    </ul>
+
+    <div class="actions actions-bottom">
+      <button id="confirmDownloadKML" class="primary">⬇️ Download KML</button>
+      <button id="cancelKMLTutorial" class="ghost">Cancel</button>
+    </div>
+  </div>
+</div>
+
+
   <!-- Supabase SDK -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
   <!-- Turf.js (must load BEFORE your app code) -->
   <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
 
-  <!-- App config (put your real keys here) -->
+  <!-- App config -->
   <script>
     window.SUPABASE_URL = "https://dwsfbdxkfxmbuguxxavt.supabase.co";
     window.SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3c2ZiZHhrZnhtYnVndXh4YXZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ2NTgzMTUsImV4cCI6MjA3MDIzNDMxNX0.OG9v09eBKcx65qT1ZptqggfQCE6j3Vdaeamkdw8W3Yk";

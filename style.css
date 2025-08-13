@@ -203,3 +203,50 @@ textarea { resize: vertical; }
   }
   #notice { top: 56px; font-size: 13px; }
 }
+
+
+/* Overlay for the tutorial panel */
+#kmlTutorialPanel {
+  position: fixed;
+  inset: 0;
+  display: none;              /* hidden class will toggle this to none/block */
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.45);
+  z-index: 1000;
+}
+#kmlTutorialPanel:not(.hidden) { display: flex; }
+
+/* Card styling (different from add-pin panel) */
+#kmlTutorialPanel .panel-card {
+  width: min(640px, 92vw);
+  max-height: 82vh;
+  overflow: auto;
+  background: var(--panel-bg, #fff);
+  color: var(--panel-fg, #111);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  padding: 20px 20px 0;           /* bottom padding handled by sticky footer */
+}
+
+/* Bottom action bar */
+#kmlTutorialPanel .actions-bottom {
+  position: sticky;
+  bottom: 0;
+  background: inherit;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 12px 0 16px;
+  margin-top: 16px;
+  border-top: 1px solid rgba(0,0,0,0.08);
+}
+
+/* Optional: make it feel distinct in dark mode too */
+@media (prefers-color-scheme: dark) {
+  #kmlTutorialPanel .panel-card {
+    --panel-bg: #101319;
+    --panel-fg: #eaeef7;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+}
